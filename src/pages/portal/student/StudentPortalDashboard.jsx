@@ -4,7 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 
 export default function StudentPortalDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('profile'); // profile, timetable, attendance, report
+  const [activeTab, setActiveTab] = useState('profile'); // profile, timetable, attendance, report, materials, fees
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
@@ -13,6 +13,12 @@ export default function StudentPortalDashboard() {
   const [timetableSlots, setTimetableSlots] = useState([]);
   const [attendanceData, setAttendanceData] = useState({ records: [], stats: { rate: 100, total: 0 } });
   const [gradesReport, setGradesReport] = useState([]);
+
+  // Expanded State (Phase 7)
+  const [materials, setMaterials] = useState([]);
+  const [searchMaterials, setSearchMaterials] = useState('');
+  const [payments, setPayments] = useState([]);
+  const [feeStructures, setFeeStructures] = useState([]);
 
   const token = localStorage.getItem('token');
   const authHeaders = {
@@ -68,9 +74,30 @@ export default function StudentPortalDashboard() {
           if (resData.success) {
             setGradesReport(resData.data);
           }
+        } else if (activeTab === 'materials' && profileData.classes?.id) {
+          // Fetch academic documents linked to their class ID
+          const res = await fetch(`/api/documents?related_to=class&related_id=${profileData.classes.id}`, { headers: authHeaders });
+          const resData = await res.json();
+          if (resData.success) {
+            setMaterials(resData.data);
+          }
+        } else if (activeTab === 'fees') {
+          // Fetch fee payments history registered on their profile
+          const payRes = await fetch(`/api/fees/payments/student/${profileData.id}`, { headers: authHeaders });
+          const payData = await payRes.json();
+          if (payData.success) {
+            setPayments(payData.data);
+          }
+
+          // Fetch billing fee structures registered on their level bracket
+          const structRes = await fetch(`/api/fees/structures?level=${profileData.level}`, { headers: authHeaders });
+          const structData = await structRes.json();
+          if (structData.success) {
+            setFeeStructures(structData.data);
+          }
         }
       } catch (err) {
-        console.error('Error fetching student academic details:', err);
+        console.error('Error fetching student details:', err);
       } finally {
         setLoadingData(false);
       }
@@ -111,11 +138,94 @@ export default function StudentPortalDashboard() {
 
   const compiledGrades = getCompiledReport();
 
+  // Financial ledger metrics
+  const totalBilled = feeStructures.reduce((acc, s) => acc + parseFloat(s.amount), 0);
+  const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount_paid), 0);
+  const totalDue = Math.max(0, totalBilled - totalPaid);
+
+  // Search materials filter
+  const filteredMaterials = materials.filter(m =>
+    m.title.toLowerCase().includes(searchMaterials.toLowerCase())
+  );
+
+  const triggerPrint = () => {
+    window.print();
+  };
+
   return (
     <PortalLayout>
+      {/* Printable watermarks for browsers print formatting */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          .portal-layout__sidebar, 
+          .portal-layout__header, 
+          .child-switcher-tabs, 
+          .dash-hero, 
+          .no-print, 
+          header, 
+          nav {
+            display: none !important;
+          }
+          .portal-layout__content, .student-dash {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+          }
+          .print-header {
+            display: flex !important;
+            flex-direction: column;
+            align-items: center;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+          }
+          .dash-pane {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+          }
+          .print-signatures {
+            display: flex !important;
+            justify-content: space-between;
+            margin-top: 3rem;
+          }
+          table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+          }
+          th, td {
+            border: 1px solid #94a3b8 !important;
+            padding: 10px !important;
+          }
+        }
+      `}} />
+
       <div className="student-dash">
+        
+        {/* Print Only Official School Watermark Header */}
+        <div className="print-header" style={{ display: 'none', textAlign: 'center' }}>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '2rem', margin: '0 0 0.25rem', color: '#1b2a4a' }}>GRANDVIEW ACADEMY</h1>
+          <p style={{ fontSize: '0.8rem', letterSpacing: '2px', color: '#64748b', textTransform: 'uppercase', margin: '0 0 0.5rem' }}>official student record transcript</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', width: '100%', border: '1px solid #cbd5e1', padding: '1rem', borderRadius: '4px', textAlign: 'left', fontSize: '0.85rem', marginTop: '1rem' }}>
+            <div>
+              <p style={{ margin: '0 0 0.35rem' }}><strong>Student Name:</strong> {profileData?.first_name} {profileData?.last_name}</p>
+              <p style={{ margin: '0 0 0.35rem' }}><strong>Admission Code:</strong> {profileData?.admission_number}</p>
+              <p style={{ margin: '0' }}><strong>Enrollment Cohort:</strong> {profileData?.classes?.name}</p>
+            </div>
+            <div>
+              <p style={{ margin: '0 0 0.35rem' }}><strong>Date of Printing:</strong> {new Date().toLocaleDateString()}</p>
+              <p style={{ margin: '0 0 0.35rem' }}><strong>Report Bracket:</strong> {profileData?.level?.toUpperCase()}</p>
+              <p style={{ margin: '0' }}><strong>Status:</strong> ACTIVE ENROLLMENT</p>
+            </div>
+          </div>
+        </div>
+
         {/* Welcome Banner */}
-        <section className="dash-hero" style={{ marginBottom: '1.5rem' }}>
+        <section className="dash-hero no-print" style={{ marginBottom: '1.5rem' }}>
           <div className="dash-hero__text">
             <span className="dash-hero__label">Student Portal</span>
             <h1 className="dash-hero__title">
@@ -141,12 +251,14 @@ export default function StudentPortalDashboard() {
         ) : (
           <div className="student-portal-workspace">
             {/* Class Coordinates and Tab Switcher */}
-            <div className="child-switcher-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', overflowX: 'auto' }}>
+            <div className="child-switcher-tabs no-print" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', overflowX: 'auto' }}>
               {[
                 { id: 'profile', label: 'My Profile Folder', icon: '👤' },
                 { id: 'timetable', label: 'Lecture Timetable', icon: '🏫' },
                 { id: 'attendance', label: 'Attendance History', icon: '📅' },
-                { id: 'report', label: 'Academic Report Card', icon: '📝' }
+                { id: 'report', label: 'Academic Report Card', icon: '📝' },
+                { id: 'materials', label: 'Learning Materials 📚', icon: '' },
+                { id: 'fees', label: 'Fees & Invoices ₦', icon: '' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -176,6 +288,7 @@ export default function StudentPortalDashboard() {
               </div>
             )}
 
+            {/* TAB: PROFILE */}
             {!loadingData && activeTab === 'profile' && (
               <div className="dash-main-grid" style={{ gridTemplateColumns: '1.7fr 1.3fr', display: 'grid', gap: '1.5rem' }}>
                 {/* Folder Sheet */}
@@ -250,6 +363,7 @@ export default function StudentPortalDashboard() {
               </div>
             )}
 
+            {/* TAB: TIMETABLE */}
             {!loadingData && activeTab === 'timetable' && (
               <div className="dash-pane">
                 <div style={{ marginBottom: '1.5rem' }}>
@@ -292,6 +406,7 @@ export default function StudentPortalDashboard() {
               </div>
             )}
 
+            {/* TAB: ATTENDANCE */}
             {!loadingData && activeTab === 'attendance' && (
               <div className="dash-main-grid" style={{ gridTemplateColumns: '1.2fr 1.8fr', display: 'grid', gap: '1.5rem' }}>
                 {/* Stats Summary Pane */}
@@ -357,11 +472,17 @@ export default function StudentPortalDashboard() {
               </div>
             )}
 
+            {/* TAB: ACADEMIC REPORT CARD */}
             {!loadingData && activeTab === 'report' && (
               <div className="dash-pane">
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h3 className="dash-pane__title" style={{ margin: 0 }}>Academic Transcript</h3>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Review continuous assessments and final term examination grades.</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <h3 className="dash-pane__title" style={{ margin: 0 }}>Academic Transcript Report</h3>
+                    <p className="no-print" style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Review continuous assessments and final term examination grades.</p>
+                  </div>
+                  <button onClick={triggerPrint} className="btn btn--gold no-print" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 'bold' }}>
+                    Print Report Card 🖨️
+                  </button>
                 </div>
 
                 {compiledGrades.length === 0 ? (
@@ -371,51 +492,233 @@ export default function StudentPortalDashboard() {
                     <p className="empty-desc">No academic grades have been published for your profile folder in the active term.</p>
                   </div>
                 ) : (
-                  <div className="students-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                          <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569' }}>Subject Name</th>
-                          <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>CA1 (Max 30)</th>
-                          <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>CA2 (Max 30)</th>
-                          <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Exam (Max 40)</th>
-                          <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Total Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {compiledGrades.map((grade, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '1rem', fontSize: '0.875rem' }}>
-                              <strong style={{ color: '#0f172a' }}>{grade.subjectName}</strong>
-                              <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block', marginTop: '0.125rem' }}>Code: {grade.subjectCode}</span>
-                            </td>
-                            <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.ca1}</td>
-                            <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.ca2}</td>
-                            <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.exam}</td>
-                            <td style={{ padding: '1rem', textAlign: 'center' }}>
-                              <span style={{
-                                padding: '0.25rem 0.75rem',
-                                borderRadius: '4px',
-                                fontSize: '0.875rem',
-                                fontWeight: 'bold',
-                                backgroundColor: grade.total >= 70 ? '#f0fdf4' : grade.total >= 50 ? '#fffbeb' : '#fdf2f2',
-                                color: grade.total >= 70 ? '#16a34a' : grade.total >= 50 ? '#d97706' : '#dc2626'
-                              }}>
-                                {grade.total} / 100
-                              </span>
-                            </td>
+                  <div>
+                    <div className="students-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                            <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569' }}>Subject Name</th>
+                            <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>CA1 (30)</th>
+                            <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>CA2 (30)</th>
+                            <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Exam (40)</th>
+                            <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Total (100)</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {compiledGrades.map((grade, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '1rem', fontSize: '0.875rem' }}>
+                                <strong style={{ color: '#0f172a' }}>{grade.subjectName}</strong>
+                                <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block', marginTop: '0.125rem' }}>Code: {grade.subjectCode}</span>
+                              </td>
+                              <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.ca1}</td>
+                              <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.ca2}</td>
+                              <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.exam}</td>
+                              <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                <span style={{
+                                  padding: '0.25rem 0.75rem',
+                                  borderRadius: '4px',
+                                  fontSize: '0.875rem',
+                                  fontWeight: 'bold',
+                                  backgroundColor: grade.total >= 70 ? '#f0fdf4' : grade.total >= 50 ? '#fffbeb' : '#fdf2f2',
+                                  color: grade.total >= 70 ? '#16a34a' : grade.total >= 50 ? '#d97706' : '#dc2626'
+                                }}>
+                                  {grade.total}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Official Signatures Row for printing only */}
+                    <div className="print-signatures" style={{ display: 'none', marginTop: '3.5rem' }}>
+                      <div style={{ textAlign: 'center', width: '200px', borderTop: '1px solid #000000', paddingTop: '0.5rem', fontSize: '0.8rem' }}>
+                        Principal Signature
+                      </div>
+                      <div style={{ textAlign: 'center', width: '200px', borderTop: '1px solid #000000', paddingTop: '0.5rem', fontSize: '0.8rem' }}>
+                        Registrar Stamp
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             )}
+
+            {/* TAB: LEARNING MATERIALS (Phase 7) */}
+            {!loadingData && activeTab === 'materials' && (
+              <div className="dash-pane">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <h3 className="dash-pane__title" style={{ margin: 0 }}>Learning Materials Shelf</h3>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Download lecture notes, worksheets, and textbooks published by teachers.</p>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search documents by title..."
+                    style={{ padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.8125rem', outline: 'none', width: '240px' }}
+                    value={searchMaterials}
+                    onChange={(e) => setSearchMaterials(e.target.value)}
+                  />
+                </div>
+
+                {filteredMaterials.length === 0 ? (
+                  <div className="pane-empty" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+                    <span className="empty-icon">📚</span>
+                    <h4 className="empty-title">Shelf Empty</h4>
+                    <p className="empty-desc">No academic learning materials found matching your search or linked to your cohort.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                    {filteredMaterials.map(mat => (
+                      <div key={mat.id} style={{ padding: '1.25rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                            <span style={{ fontSize: '1.75rem' }}>📄</span>
+                            <span style={{ fontSize: '0.625rem', background: '#e2e8f0', color: '#475569', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                              {mat.file_type.split('/')[1] || 'PDF'}
+                            </span>
+                          </div>
+                          <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1e293b', margin: '0 0 0.5rem', lineHeight: '1.4' }}>
+                            {mat.title}
+                          </h4>
+                          <p style={{ fontSize: '0.7rem', color: '#64748b', margin: 0 }}>
+                            Published: {new Date(mat.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <a
+                          href={mat.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn--navy"
+                          style={{
+                            display: 'block',
+                            textAlign: 'center',
+                            padding: '0.5rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            marginTop: '1rem',
+                            textDecoration: 'none'
+                          }}
+                        >
+                          Download Resource 📥
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: FEES & INVOICES LEDGER (Phase 7) */}
+            {!loadingData && activeTab === 'fees' && (
+              <div className="dash-pane">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <h3 className="dash-pane__title" style={{ margin: 0 }}>Tuition Fees Balance Statement</h3>
+                    <p className="no-print" style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Audit billed invoices, payment registries, and outstanding balances.</p>
+                  </div>
+                  <button onClick={triggerPrint} className="btn btn--gold no-print" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 'bold' }}>
+                    Print Statement 🧾
+                  </button>
+                </div>
+
+                {/* Financial Summary Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div style={{ padding: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Total Billed Invoice</span>
+                    <strong style={{ fontSize: '1.25rem', color: '#0f172a', display: 'block', marginTop: '0.25rem' }}>
+                      ₦{totalBilled.toLocaleString()}
+                    </strong>
+                  </div>
+                  <div style={{ padding: '1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#166534', display: 'block', fontWeight: 600 }}>Deposited Amount</span>
+                    <strong style={{ fontSize: '1.25rem', color: '#16a34a', display: 'block', marginTop: '0.25rem' }}>
+                      ₦{totalPaid.toLocaleString()}
+                    </strong>
+                  </div>
+                  <div style={{ padding: '1rem', background: totalDue > 0 ? '#fdf2f2' : '#f0fdf4', border: totalDue > 0 ? '1px solid #fecaca' : '1px solid #bbf7d0', borderRadius: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', color: totalDue > 0 ? '#991b1b' : '#166534', display: 'block', fontWeight: 600 }}>Outstanding Balance</span>
+                    <strong style={{ fontSize: '1.25rem', color: totalDue > 0 ? '#dc2626' : '#16a34a', display: 'block', marginTop: '0.25rem' }}>
+                      ₦{totalDue.toLocaleString()}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Detailed Invoiced Structure Items */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1b2a4a', marginBottom: '0.75rem' }}>Invoice Details Breakdown</h4>
+                  {feeStructures.length === 0 ? (
+                    <p style={{ fontSize: '0.75rem', color: '#64748b' }}>No billed fees configured for this class level.</p>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                      {feeStructures.map(st => (
+                        <div key={st.id} style={{ padding: '0.75rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <strong style={{ fontSize: '0.8125rem', color: '#1e293b', display: 'block' }}>{st.fee_type}</strong>
+                            <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>Level Bracket: {st.level}</span>
+                          </div>
+                          <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>₦{parseFloat(st.amount).toLocaleString()}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Audit Payments Table */}
+                <div>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1b2a4a', marginBottom: '0.75rem' }}>Receipt Transactions Ledger</h4>
+                  {payments.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem 0', color: '#94a3b8' }}>
+                      <p style={{ fontSize: '0.75rem', margin: 0 }}>No payment receipts registered on your student catalog ledger.</p>
+                    </div>
+                  ) : (
+                    <div className="students-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                            <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569' }}>Receipt Number</th>
+                            <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569' }}>Date Registered</th>
+                            <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569' }}>Fee Item</th>
+                            <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569' }}>Method</th>
+                            <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569', textAlign: 'right' }}>Amount Paid</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {payments.map(pay => (
+                            <tr key={pay.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#0f172a' }}>{pay.receipt_number}</td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: '#64748b' }}>{new Date(pay.payment_date).toLocaleDateString()}</td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>{pay.fee_structures?.fee_type || 'Tuition'}</td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: '#64748b' }}>{pay.payment_method}</td>
+                              <td style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#16a34a', textAlign: 'right' }}>
+                                ₦{parseFloat(pay.amount_paid).toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Print Only Official Ledger Signatures */}
+                <div className="print-signatures" style={{ display: 'none', marginTop: '3.5rem' }}>
+                  <div style={{ textAlign: 'center', width: '200px', borderTop: '1px solid #000000', paddingTop: '0.5rem', fontSize: '0.8rem' }}>
+                    Bursary Department
+                  </div>
+                  <div style={{ textAlign: 'center', width: '200px', borderTop: '1px solid #000000', paddingTop: '0.5rem', fontSize: '0.8rem' }}>
+                    Official Stamp
+                  </div>
+                </div>
+
+              </div>
+            )}
+
           </div>
         )}
       </div>
     </PortalLayout>
   );
 }
-

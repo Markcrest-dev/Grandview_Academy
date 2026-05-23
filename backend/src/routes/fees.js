@@ -105,7 +105,7 @@ router.post('/structures', requireAuth, requireRoles('admin', 'non_teaching_staf
  * GET /api/fees/payments
  * List fee payments.
  */
-router.get('/payments', requireAuth, async (req, res, next) => {
+router.get('/payments', requireAuth, requireRoles('admin', 'non_teaching_staff'), async (req, res, next) => {
   try {
     const { page, limit, offset } = parsePagination(req.query);
     const { student_id, term_id } = req.query;
@@ -186,7 +186,7 @@ router.get('/payments/student/:id', requireAuth, async (req, res, next) => {
  * Record a fee payment.
  * Restricted to admins and non-teaching staff (Bursar).
  */
-router.post('/payments', requireAuth, requireRoles('admin', 'non_teaching_staff'), async (req, res, next) => {
+router.post('/payments', requireAuth, requireRoles('admin', 'non_teaching_staff', 'parent'), async (req, res, next) => {
   try {
     const { student_id, fee_structure_id, amount_paid, payment_method, payment_date, remarks } = req.body;
 

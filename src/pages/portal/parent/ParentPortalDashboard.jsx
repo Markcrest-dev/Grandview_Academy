@@ -9,7 +9,7 @@ export default function ParentPortalDashboard() {
   const [selectedChildData, setSelectedChildData] = useState(null);
   
   // Tab states
-  const [subTab, setSubTab] = useState('profile'); // profile, timetable, attendance, report
+  const [subTab, setSubTab] = useState('profile'); // profile, timetable, attendance, report, fees, alerts
   const [loading, setLoading] = useState(true);
   const [childLoading, setChildLoading] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
@@ -18,6 +18,28 @@ export default function ParentPortalDashboard() {
   const [timetableSlots, setTimetableSlots] = useState([]);
   const [attendanceData, setAttendanceData] = useState({ records: [], stats: { rate: 100, total: 0 } });
   const [gradesReport, setGradesReport] = useState([]);
+
+  // Expanded Parent States (Phase 8)
+  const [feeStructures, setFeeStructures] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  
+  // Payment Form States
+  const [selectedFeeStructureId, setSelectedFeeStructureId] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardHolder, setCardHolder] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [paymentReceiptNumber, setPaymentReceiptNumber] = useState('');
+
+  // Messaging States
+  const [teacherMessage, setTeacherMessage] = useState('');
+  const [messageSending, setMessageSending] = useState(false);
+  const [messageSuccess, setMessageSuccess] = useState(false);
 
   const token = localStorage.getItem('token');
   const authHeaders = {
@@ -74,7 +96,7 @@ export default function ParentPortalDashboard() {
     loadSelectedChildFolder();
   }, [selectedChildId]);
 
-  // 3. Load active tab academic metrics for the child
+  // 3. Load active tab metrics for the child
   useEffect(() => {
     async function fetchChildMetrics() {
       if (!selectedChildId || !selectedChildData) return;
@@ -99,9 +121,24 @@ export default function ParentPortalDashboard() {
           if (resData.success) {
             setGradesReport(resData.data);
           }
+        } else if (subTab === 'fees') {
+          await refreshFeesData();
+        } else if (subTab === 'alerts') {
+          // Fetch announcements
+          const res = await fetch('/api/announcements', { headers: authHeaders });
+          const resData = await res.json();
+          if (resData.success) {
+            setAnnouncements(resData.data);
+          }
+          // Fetch attendance logs for absent alerts parser
+          const attRes = await fetch(`/api/attendance/student/${selectedChildId}`, { headers: authHeaders });
+          const attData = await attRes.json();
+          if (attData.success) {
+            setAttendanceData(attData.data);
+          }
         }
       } catch (err) {
-        console.error('Error loading child performance metrics:', err);
+        console.error('Error loading child metrics:', err);
       } finally {
         setLoadingMetrics(false);
       }
@@ -109,6 +146,30 @@ export default function ParentPortalDashboard() {
 
     fetchChildMetrics();
   }, [subTab, selectedChildId, selectedChildData]);
+
+  // Helper to re-fetch fees and structures
+  const refreshFeesData = async () => {
+    if (!selectedChildId || !selectedChildData) return;
+    try {
+      const payRes = await fetch(`/api/fees/payments/student/${selectedChildId}`, { headers: authHeaders });
+      const payData = await payRes.json();
+      if (payData.success) {
+        setPayments(payData.data);
+      }
+
+      const structRes = await fetch(`/api/fees/structures?level=${selectedChildData.level}`, { headers: authHeaders });
+      const structData = await structRes.json();
+      if (structData.success) {
+        setFeeStructures(structData.data);
+        if (structData.data.length > 0) {
+          setSelectedFeeStructureId(structData.data[0].id);
+          setPaymentAmount(structData.data[0].amount.toString());
+        }
+      }
+    } catch (err) {
+      console.error('Error refreshing fee structures:', err);
+    }
+  };
 
   // Compile grades grouping
   const getCompiledReport = () => {
@@ -142,11 +203,148 @@ export default function ParentPortalDashboard() {
 
   const compiledGrades = getCompiledReport();
 
+  // Financial ledgers summary metrics
+  const totalBilled = feeStructures.reduce((acc, s) => acc + parseFloat(s.amount), 0);
+  const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount_paid), 0);
+  const totalDue = Math.max(0, totalBilled - totalPaid);
+
+  // Absent days extractor
+  const absentDays = attendanceData.records.filter(r => r.status.toLowerCase() === 'absent');
+
+  // Submit Tuition Payment SIMULATION
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedFeeStructureId || !paymentAmount) return;
+
+    setPaymentProcessing(true);
+
+    // Simulate Interswitch / Paystack Gateway handshake delay
+    setTimeout(async () => {
+      try {
+        const res = await fetch('/api/fees/payments', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({
+            student_id: selectedChildId,
+            fee_structure_id: selectedFeeStructureId,
+            amount_paid: parseFloat(paymentAmount),
+            payment_method: 'Card (Online Checkout)',
+            remarks: 'Simulated Online Parent Payment Gateway deposit'
+          })
+        });
+
+        const resData = await res.json();
+        setPaymentProcessing(false);
+
+        if (resData.success) {
+          setPaymentReceiptNumber(resData.data.receipt_number);
+          setShowPaymentModal(false);
+          setShowSuccessModal(true);
+          await refreshFeesData(); // Reload financial ledger instantly!
+        } else {
+          alert(`Gateway Error: ${resData.message}`);
+        }
+      } catch (err) {
+        setPaymentProcessing(false);
+        console.error('Payment gateway error:', err);
+        alert('Failed to register payment via Gateway.');
+      }
+    }, 2500);
+  };
+
+  // Submit direct message to Form Teacher
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (!teacherMessage.trim()) return;
+
+    setMessageSending(true);
+
+    // Simulate messaging handshake
+    setTimeout(() => {
+      setMessageSending(false);
+      setMessageSuccess(true);
+      setTeacherMessage('');
+      setTimeout(() => setMessageSuccess(false), 4000);
+    }, 1200);
+  };
+
+  const triggerPrint = () => {
+    window.print();
+  };
+
   return (
     <PortalLayout>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          .portal-layout__sidebar, 
+          .portal-layout__header, 
+          .child-switcher-tabs, 
+          .dash-hero, 
+          .no-print, 
+          header, 
+          nav {
+            display: none !important;
+          }
+          .portal-layout__content, .parent-dash {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+          }
+          .print-header {
+            display: flex !important;
+            flex-direction: column;
+            align-items: center;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+          }
+          .dash-pane {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+          }
+          .print-signatures {
+            display: flex !important;
+            justify-content: space-between;
+            margin-top: 3rem;
+          }
+          table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+          }
+          th, td {
+            border: 1px solid #cbd5e1 !important;
+            padding: 10px !important;
+          }
+        }
+      `}} />
+
       <div className="parent-dash">
+        
+        {/* Print Only Official School Watermark Header */}
+        <div className="print-header" style={{ display: 'none', textAlign: 'center' }}>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '2rem', margin: '0 0 0.25rem', color: '#1b2a4a' }}>GRANDVIEW ACADEMY</h1>
+          <p style={{ fontSize: '0.8rem', letterSpacing: '2px', color: '#64748b', textTransform: 'uppercase', margin: '0 0 0.5rem' }}>OFFICIAL TRANSCRIPT OF PERFORMANCE</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', width: '100%', border: '1px solid #cbd5e1', padding: '1rem', borderRadius: '4px', textAlign: 'left', fontSize: '0.85rem', marginTop: '1rem' }}>
+            <div>
+              <p style={{ margin: '0 0 0.35rem' }}><strong>Student Ward:</strong> {selectedChildData?.first_name} {selectedChildData?.last_name}</p>
+              <p style={{ margin: '0 0 0.35rem' }}><strong>Admission Code:</strong> {selectedChildData?.admission_number}</p>
+              <p style={{ margin: '0' }}><strong>Enrolled Cohort:</strong> {selectedChildData?.classes?.name}</p>
+            </div>
+            <div>
+              <p style={{ margin: '0 0 0.35rem' }}><strong>Date of Printing:</strong> {new Date().toLocaleDateString()}</p>
+              <p style={{ margin: '0 0 0.35rem' }}><strong>Guardian Name:</strong> {user?.profile?.first_name} {user?.profile?.last_name}</p>
+              <p style={{ margin: '0' }}><strong>Report Bracket:</strong> {selectedChildData?.level?.toUpperCase()}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Welcome Section */}
-        <section className="dash-hero" style={{ marginBottom: '1.5rem' }}>
+        <section className="dash-hero no-print" style={{ marginBottom: '1.5rem' }}>
           <div className="dash-hero__text">
             <span className="dash-hero__label">Parent Portal</span>
             <h1 className="dash-hero__title">Family Ward Directory</h1>
@@ -172,7 +370,7 @@ export default function ParentPortalDashboard() {
         ) : (
           <div className="parent-portal-workspace">
             {/* Child Switcher Tabs */}
-            <div className="child-switcher-tabs" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', overflowX: 'auto' }}>
+            <div className="child-switcher-tabs no-print" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', overflowX: 'auto' }}>
               {children.map((child) => (
                 <button
                   key={child.id}
@@ -203,12 +401,14 @@ export default function ParentPortalDashboard() {
             ) : selectedChildData ? (
               <div className="child-folder-workspace">
                 {/* Child Academic Tab Navigation */}
-                <div className="child-switcher-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', overflowX: 'auto' }}>
+                <div className="child-switcher-tabs no-print" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', overflowX: 'auto' }}>
                   {[
-                    { id: 'profile', label: 'Ward Profile details', icon: '👤' },
+                    { id: 'profile', label: 'Ward Profile Details', icon: '👤' },
                     { id: 'timetable', label: 'School Timetable', icon: '🏫' },
-                    { id: 'attendance', label: 'Attendance stats', icon: '📅' },
-                    { id: 'report', label: 'Report Card Transcript', icon: '📝' }
+                    { id: 'attendance', label: 'Attendance Stats', icon: '📅' },
+                    { id: 'report', label: 'Report Card Transcript', icon: '📝' },
+                    { id: 'fees', label: 'Fees & Payments 💳', icon: '' },
+                    { id: 'alerts', label: 'Alerts & Messages 🔔', icon: '' }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -238,6 +438,7 @@ export default function ParentPortalDashboard() {
                   </div>
                 )}
 
+                {/* SUBTAB: PROFILE */}
                 {!loadingMetrics && subTab === 'profile' && (
                   <div className="dash-main-grid" style={{ gridTemplateColumns: '1.7fr 1.3fr', display: 'grid', gap: '1.5rem' }}>
                     {/* Child Folder pane */}
@@ -298,6 +499,7 @@ export default function ParentPortalDashboard() {
                   </div>
                 )}
 
+                {/* SUBTAB: TIMETABLE */}
                 {!loadingMetrics && subTab === 'timetable' && (
                   <div className="dash-pane">
                     <div style={{ marginBottom: '1.5rem' }}>
@@ -340,6 +542,7 @@ export default function ParentPortalDashboard() {
                   </div>
                 )}
 
+                {/* SUBTAB: ATTENDANCE */}
                 {!loadingMetrics && subTab === 'attendance' && (
                   <div className="dash-main-grid" style={{ gridTemplateColumns: '1.2fr 1.8fr', display: 'grid', gap: '1.5rem' }}>
                     {/* Stats Summary Pane */}
@@ -405,11 +608,17 @@ export default function ParentPortalDashboard() {
                   </div>
                 )}
 
+                {/* SUBTAB: ACADEMIC REPORT CARD */}
                 {!loadingMetrics && subTab === 'report' && (
                   <div className="dash-pane">
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <h3 className="dash-pane__title" style={{ margin: 0 }}>Academic Transcript</h3>
-                      <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Review continuous assessments and final term examination grades published for your child.</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div>
+                        <h3 className="dash-pane__title" style={{ margin: 0 }}>Academic Transcript</h3>
+                        <p className="no-print" style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Review continuous assessments and final term examination grades published for your child.</p>
+                      </div>
+                      <button onClick={triggerPrint} className="btn btn--gold no-print" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 'bold' }}>
+                        Print Report Card 🖨️
+                      </button>
                     </div>
 
                     {compiledGrades.length === 0 ? (
@@ -419,53 +628,411 @@ export default function ParentPortalDashboard() {
                         <p className="empty-desc">No academic grades have been published for your child in the active term period.</p>
                       </div>
                     ) : (
-                      <div className="students-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                          <thead>
-                            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569' }}>Subject Name</th>
-                              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>CA1 (Max 30)</th>
-                              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>CA2 (Max 30)</th>
-                              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Exam (Max 40)</th>
-                              <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Total Score</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {compiledGrades.map((grade, idx) => (
-                              <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                <td style={{ padding: '1rem', fontSize: '0.875rem' }}>
-                                  <strong style={{ color: '#0f172a' }}>{grade.subjectName}</strong>
-                                  <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block', marginTop: '0.125rem' }}>Code: {grade.subjectCode}</span>
-                                </td>
-                                <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.ca1}</td>
-                                <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.ca2}</td>
-                                <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.exam}</td>
-                                <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                  <span style={{
-                                    padding: '0.25rem 0.75rem',
-                                    borderRadius: '4px',
-                                    fontSize: '0.875rem',
-                                    fontWeight: 'bold',
-                                    backgroundColor: grade.total >= 70 ? '#f0fdf4' : grade.total >= 50 ? '#fffbeb' : '#fdf2f2',
-                                    color: grade.total >= 70 ? '#16a34a' : grade.total >= 50 ? '#d97706' : '#dc2626'
-                                  }}>
-                                    {grade.total} / 100
-                                  </span>
-                                </td>
+                      <div>
+                        <div className="students-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569' }}>Subject Name</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>CA1 (30)</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>CA2 (30)</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Exam (40)</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Total (100)</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {compiledGrades.map((grade, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                  <td style={{ padding: '1rem', fontSize: '0.875rem' }}>
+                                    <strong style={{ color: '#0f172a' }}>{grade.subjectName}</strong>
+                                    <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block', marginTop: '0.125rem' }}>Code: {grade.subjectCode}</span>
+                                  </td>
+                                  <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.ca1}</td>
+                                  <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.ca2}</td>
+                                  <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#1e293b', fontWeight: '600', textAlign: 'center' }}>{grade.exam}</td>
+                                  <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                    <span style={{
+                                      padding: '0.25rem 0.75rem',
+                                      borderRadius: '4px',
+                                      fontSize: '0.875rem',
+                                      fontWeight: 'bold',
+                                      backgroundColor: grade.total >= 70 ? '#f0fdf4' : grade.total >= 50 ? '#fffbeb' : '#fdf2f2',
+                                      color: grade.total >= 70 ? '#16a34a' : grade.total >= 50 ? '#d97706' : '#dc2626'
+                                    }}>
+                                      {grade.total}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Official Signatures Row for printing only */}
+                        <div className="print-signatures" style={{ display: 'none', marginTop: '3.5rem' }}>
+                          <div style={{ textAlign: 'center', width: '200px', borderTop: '1px solid #000000', paddingTop: '0.5rem', fontSize: '0.8rem' }}>
+                            Principal Signature
+                          </div>
+                          <div style={{ textAlign: 'center', width: '200px', borderTop: '1px solid #000000', paddingTop: '0.5rem', fontSize: '0.8rem' }}>
+                            Registrar Stamp
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
+
+                {/* SUBTAB: FEES & PAYMENTS (Phase 8) */}
+                {!loadingMetrics && subTab === 'fees' && (
+                  <div className="dash-pane">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div>
+                        <h3 className="dash-pane__title" style={{ margin: 0 }}>Tuition Fees & Payments Portal</h3>
+                        <p className="no-print" style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Review billed items, outstanding balances, and execute online tuition payments.</p>
+                      </div>
+                      <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => setShowPaymentModal(true)} className="btn btn--navy" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 'bold' }}>
+                          Make Online Payment 💳
+                        </button>
+                        <button onClick={triggerPrint} className="btn btn--gold" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 'bold' }}>
+                          Print Statement 🧾
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Financial Summary Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                      <div style={{ padding: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: 600 }}>Total Billed Invoice</span>
+                        <strong style={{ fontSize: '1.25rem', color: '#0f172a', display: 'block', marginTop: '0.25rem' }}>
+                          ₦{totalBilled.toLocaleString()}
+                        </strong>
+                      </div>
+                      <div style={{ padding: '1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#166534', display: 'block', fontWeight: 600 }}>Total Deposited</span>
+                        <strong style={{ fontSize: '1.25rem', color: '#16a34a', display: 'block', marginTop: '0.25rem' }}>
+                          ₦{totalPaid.toLocaleString()}
+                        </strong>
+                      </div>
+                      <div style={{ padding: '1rem', background: totalDue > 0 ? '#fdf2f2' : '#f0fdf4', border: totalDue > 0 ? '1px solid #fecaca' : '1px solid #bbf7d0', borderRadius: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: totalDue > 0 ? '#991b1b' : '#166534', display: 'block', fontWeight: 600 }}>Net Outstanding</span>
+                        <strong style={{ fontSize: '1.25rem', color: totalDue > 0 ? '#dc2626' : '#16a34a', display: 'block', marginTop: '0.25rem' }}>
+                          ₦{totalDue.toLocaleString()}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* Billed Fee Breakdown */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1b2a4a', marginBottom: '0.75rem' }}>Billing Structure items</h4>
+                      {feeStructures.length === 0 ? (
+                        <p style={{ fontSize: '0.75rem', color: '#64748b' }}>No billed fees configured for this class level.</p>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                          {feeStructures.map(st => (
+                            <div key={st.id} style={{ padding: '0.75rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <strong style={{ fontSize: '0.8125rem', color: '#1e293b', display: 'block' }}>{st.fee_type}</strong>
+                                <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>Level Bracket: {st.level}</span>
+                              </div>
+                              <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>₦{parseFloat(st.amount).toLocaleString()}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Payment Transactions Ledger */}
+                    <div>
+                      <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1b2a4a', marginBottom: '0.75rem' }}>Receipt Transactions Ledger</h4>
+                      {payments.length === 0 ? (
+                        <p style={{ fontSize: '0.75rem', color: '#64748b' }}>No payment receipts registered on your student catalog ledger.</p>
+                      ) : (
+                        <div className="students-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569' }}>Receipt Number</th>
+                                <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569' }}>Date Registered</th>
+                                <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569' }}>Fee Item</th>
+                                <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569' }}>Method</th>
+                                <th style={{ padding: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', color: '#475569', textAlign: 'right' }}>Amount Paid</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {payments.map(pay => (
+                                <tr key={pay.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                  <td style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#0f172a' }}>{pay.receipt_number}</td>
+                                  <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: '#64748b' }}>{new Date(pay.payment_date).toLocaleDateString()}</td>
+                                  <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>{pay.fee_structures?.fee_type || 'Tuition'}</td>
+                                  <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: '#64748b' }}>{pay.payment_method}</td>
+                                  <td style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#16a34a', textAlign: 'right' }}>
+                                    ₦{parseFloat(pay.amount_paid).toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Print Only Official Ledger Signatures */}
+                    <div className="print-signatures" style={{ display: 'none', marginTop: '3.5rem' }}>
+                      <div style={{ textAlign: 'center', width: '200px', borderTop: '1px solid #000000', paddingTop: '0.5rem', fontSize: '0.8rem' }}>
+                        Bursary Department
+                      </div>
+                      <div style={{ textAlign: 'center', width: '200px', borderTop: '1px solid #000000', paddingTop: '0.5rem', fontSize: '0.8rem' }}>
+                        Official Stamp
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SUBTAB: ALERTS & MESSAGES (Phase 8) */}
+                {!loadingMetrics && subTab === 'alerts' && (
+                  <div className="dash-main-grid" style={{ gridTemplateColumns: '1.5fr 1.5fr', display: 'grid', gap: '1.5rem' }}>
+                    {/* Alerts and Announcements Panel */}
+                    <div className="dash-pane" style={{ height: 'fit-content' }}>
+                      <h3 className="dash-pane__title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                        Guardian Notifications & Alerts
+                      </h3>
+
+                      {/* Dyn Absent Alerts Parser */}
+                      {absentDays.length > 0 && (
+                        <div style={{ background: '#fdf2f2', border: '1px solid #fecaca', borderRadius: '4px', padding: '1rem', marginBottom: '1.5rem' }}>
+                          <h4 style={{ color: '#991b1b', fontSize: '0.875rem', fontWeight: 'bold', margin: '0 0 0.5rem' }}>
+                            🚨 Attendance Truancy Warning
+                          </h4>
+                          {absentDays.map(abs => (
+                            <p key={abs.id} style={{ fontSize: '0.75rem', color: '#dc2626', margin: '0 0 0.25rem', lineHeight: '1.4' }}>
+                              ⚠️ <strong>{selectedChildData.first_name}</strong> was marked **ABSENT** on {new Date(abs.date).toLocaleDateString()} for class {abs.classes?.name}.
+                            </p>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* General announcements listing */}
+                      <h4 style={{ fontSize: '0.8125rem', fontWeight: 'bold', color: '#1b2a4a', marginBottom: '0.75rem' }}>School-Wide Announcements</h4>
+                      {announcements.length === 0 ? (
+                        <p style={{ fontSize: '0.75rem', color: '#64748b' }}>No administrative announcements registered.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {announcements.map(ann => (
+                            <div key={ann.id} style={{ padding: '0.75rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                              <strong style={{ fontSize: '0.8125rem', color: '#1e293b', display: 'block' }}>📢 {ann.title}</strong>
+                              <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block', marginTop: '0.25rem' }}>{ann.content}</span>
+                              <span style={{ fontSize: '0.625rem', color: '#94a3b8', display: 'block', marginTop: '0.5rem' }}>Date: {new Date(ann.created_at).toLocaleDateString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contact classroom teacher panel */}
+                    <div className="dash-pane">
+                      <h3 className="dash-pane__title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                        Contact Classroom Form Instructor
+                      </h3>
+
+                      <form onSubmit={handleSendMessage} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ padding: '0.75rem', background: '#f1f5f9', borderRadius: '4px', fontSize: '0.8125rem', borderLeft: '3px solid #C9A84C' }}>
+                          🧑‍🏫 Recipient: <strong>Classroom Form Teacher</strong><br />
+                          🏫 Class Segment: <strong>{selectedChildData.classes ? selectedChildData.classes.name : 'Unassigned'}</strong>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.375rem' }}>Secure Query Message</label>
+                          <textarea
+                            placeholder="Type details regarding report cards, timetables, or attendance updates..."
+                            style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', minHeight: '120px', outline: 'none', resize: 'vertical' }}
+                            value={teacherMessage}
+                            onChange={(e) => setTeacherMessage(e.target.value)}
+                            required
+                          />
+                        </div>
+
+                        {messageSuccess && (
+                          <div style={{ padding: '0.5rem', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', textAlign: 'center' }}>
+                            ✅ Secure message successfully dispatched to classroom teacher!
+                          </div>
+                        )}
+
+                        <button
+                          type="submit"
+                          className="btn btn--navy"
+                          disabled={messageSending}
+                          style={{ padding: '0.625rem', fontSize: '0.8125rem', fontWeight: 'bold' }}
+                        >
+                          {messageSending ? 'Dispatching Message...' : 'Send Message ✉️'}
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                )}
+
               </div>
             ) : null}
           </div>
         )}
       </div>
+
+      {/* MODAL: CHECKOUT SIMULATION DRAWERS (Paystack Visual Inspired) */}
+      {showPaymentModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }} className="no-print">
+          <div style={{ background: '#ffffff', borderRadius: '8px', padding: '2rem', width: '100%', maxWidth: '440px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', position: 'relative' }}>
+            <button onClick={() => setShowPaymentModal(false)} style={{ position: 'absolute', top: '1rem', right: '1.25rem', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>×</button>
+            
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ background: '#3ecf8e', color: '#ffffff', width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', margin: '0 auto 0.5rem' }}>
+                💳
+              </div>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Paystack Secure Gateway</h3>
+              <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Grandview Academy Invoicing Checkout</p>
+            </div>
+
+            <form onSubmit={handlePaymentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>BILLING FEE STRUCTURE CATEGORY</label>
+                <select
+                  style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none' }}
+                  value={selectedFeeStructureId}
+                  onChange={(e) => {
+                    setSelectedFeeStructureId(e.target.value);
+                    const matched = feeStructures.find(s => s.id === e.target.value);
+                    if (matched) setPaymentAmount(matched.amount.toString());
+                  }}
+                  required
+                >
+                  {feeStructures.map(s => (
+                    <option key={s.id} value={s.id}>{s.fee_type} — ₦{parseFloat(s.amount).toLocaleString()}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>PAYMENT AMOUNT (NGN ₦)</label>
+                <input
+                  type="number"
+                  style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none', fontWeight: 'bold' }}
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  min="1"
+                  required
+                />
+              </div>
+
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>DEBIT CARD NUMBER</label>
+                <input
+                  type="text"
+                  placeholder="4000 1234 5678 9010"
+                  maxLength="19"
+                  style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none', letterSpacing: '2px' }}
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>EXPIRY DATE</label>
+                  <input
+                    type="text"
+                    placeholder="MM/YY"
+                    maxLength="5"
+                    style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none', textAlign: 'center' }}
+                    value={cardExpiry}
+                    onChange={(e) => setCardExpiry(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>CVV</label>
+                  <input
+                    type="password"
+                    placeholder="123"
+                    maxLength="3"
+                    style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none', textAlign: 'center' }}
+                    value={cardCvv}
+                    onChange={(e) => setCardCvv(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>CARDHOLDER REGISTERED NAME</label>
+                <input
+                  type="text"
+                  placeholder="Chidi Okafor (Snr)"
+                  style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none', textTransform: 'uppercase' }}
+                  value={cardHolder}
+                  onChange={(e) => setCardHolder(e.target.value)}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={paymentProcessing}
+                style={{
+                  background: '#3ecf8e',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#ffffff',
+                  padding: '0.75rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  marginTop: '0.5rem',
+                  transition: 'background 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {paymentProcessing ? (
+                  <>
+                    <div className="pane-spinner" style={{ width: '16px', height: '16px', borderLeftColor: '#ffffff', margin: 0 }}></div>
+                    Contacting Interswitch Gateway...
+                  </>
+                ) : (
+                  `Pay NGN ₦${parseFloat(paymentAmount || 0).toLocaleString()}`
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SUCCESS CONFIRMATION PROMPTS */}
+      {showSuccessModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, backdropFilter: 'blur(5px)' }} className="no-print">
+          <div style={{ background: '#ffffff', borderRadius: '8px', padding: '2rem', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ background: '#d1fae5', color: '#059669', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', margin: '0 auto 1rem' }}>
+              ✓
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a', margin: '0 0 0.5rem' }}>Transaction Successful!</h3>
+            <p style={{ fontSize: '0.8125rem', color: '#475569', lineHeight: '1.5', margin: '0 0 1.5rem' }}>
+              We successfully registered payment for <strong>{selectedChildData?.first_name}</strong>'s school ledger.
+            </p>
+            <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', color: '#1e293b', marginBottom: '1.5rem', fontWeight: 'bold', letterSpacing: '1px' }}>
+              RECEIPT CODE: {paymentReceiptNumber}
+            </div>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="btn btn--gold"
+              style={{ padding: '0.625rem 1.5rem', fontWeight: 'bold', fontSize: '0.8125rem', width: '100%' }}
+            >
+              Back to Invoices Ledger
+            </button>
+          </div>
+        </div>
+      )}
+
     </PortalLayout>
   );
 }
-
