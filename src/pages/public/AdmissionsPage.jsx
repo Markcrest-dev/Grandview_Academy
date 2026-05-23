@@ -4,7 +4,7 @@ import './AdmissionsPage.css';
 
 const steps = [
   { number: '01', title: 'Obtain an Application Form', description: 'Application forms are available for download on this page or can be collected in person from the Admissions Office at 12 Academy Drive, Victoria Island, Lagos.' },
-  { number: '02', title: 'Submit Completed Application', description: 'Return the completed form along with all required documents to the Admissions Office or submit electronically via the enquiry form below. A non-refundable application fee of ₦10,000 applies.' },
+  { number: '02', title: 'Submit Completed Application', description: 'Return the completed form along with all required documents to the Admissions Office or submit electronically via the online application form below.' },
   { number: '03', title: 'Entrance Assessment', description: 'Shortlisted candidates will be invited for an entrance assessment. Primary applicants sit a literacy and numeracy test. Secondary applicants write examinations in English, Mathematics, and one science subject. University applicants must meet JAMB and post-UTME requirements.' },
   { number: '04', title: 'Interview', description: 'Successful candidates and their parents or guardians will be invited for a brief interview with the Admissions Committee.' },
   { number: '05', title: 'Offer of Admission', description: 'Successful applicants receive an offer letter detailing the fee schedule, resumption date, and orientation information. Acceptance must be confirmed within 14 days of receiving the offer.' },
@@ -29,16 +29,96 @@ const deadlines = [
 ];
 
 export default function AdmissionsPage() {
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', level: '', message: '' });
-  const [submitted, setSubmitted] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1); // 1: Student details, 2: Parent details, 3: Review, 4: Success
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    middle_name: '',
+    date_of_birth: '',
+    gender: '',
+    level: '',
+    previous_school: '',
+    grade_applied_for: '',
+    parent_first_name: '',
+    parent_last_name: '',
+    parent_email: '',
+    parent_phone: '',
+    parent_relationship: '',
+    parent_address: ''
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const validateStep1 = () => {
+    const { first_name, last_name, date_of_birth, gender, level } = formData;
+    if (!first_name || !last_name || !date_of_birth || !gender || !level) {
+      setErrorMsg('Please fill in all required student details.');
+      return false;
+    }
+    setErrorMsg(null);
+    return true;
+  };
+
+  const validateStep2 = () => {
+    const { parent_first_name, parent_last_name, parent_email, parent_phone, parent_relationship, parent_address } = formData;
+    if (!parent_first_name || !parent_last_name || !parent_email || !parent_phone || !parent_relationship || !parent_address) {
+      setErrorMsg('Please fill in all required parent details.');
+      return false;
+    }
+    // Simple email validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parent_email)) {
+      setErrorMsg('Please provide a valid email address for the parent.');
+      return false;
+    }
+    setErrorMsg(null);
+    return true;
+  };
+
+  const handleNext = () => {
+    if (currentStep === 1 && validateStep1()) {
+      setCurrentStep(2);
+    } else if (currentStep === 2 && validateStep2()) {
+      setCurrentStep(3);
+    }
+  };
+
+  const handlePrev = () => {
+    setErrorMsg(null);
+    setCurrentStep(prev => prev - 1);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
+    if (!validateStep1() || !validateStep2()) return;
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const response = await fetch('/api/admissions/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const resData = await response.json();
+
+      if (response.ok && resData.success) {
+        setCurrentStep(4);
+      } else {
+        setErrorMsg(resData.message || 'Failed to submit application. Please try again.');
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('Connection error. Please check your internet connection and try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -157,57 +237,247 @@ export default function AdmissionsPage() {
         </div>
       </section>
 
-      {/* Enquiry Form */}
-      <section className="section">
+      {/* Online Application Form */}
+      <section className="section" id="application-form">
         <div className="container">
-          <div className="admissions-form-layout">
-            <div className="section-heading">
-              <span className="section-heading__label">Get in Touch</span>
-              <h2 className="section-heading__title">Admissions Enquiry</h2>
-              <p className="section-heading__description">
-                Have questions about the admissions process? Fill out the form below 
-                and our Admissions Office will respond within 2 working days.
+          <div className="admissions-form-layout" style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div className="section-heading section-heading--center">
+              <span className="section-heading__label">Join Our Community</span>
+              <h2 className="section-heading__title">Online Application Portal</h2>
+              <p className="section-heading__description" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                Complete the three-step application wizard to submit your child's enrollment application.
               </p>
             </div>
-            {submitted ? (
-              <div className="form-success">
-                <h3>Thank you for your enquiry.</h3>
-                <p>Our Admissions Office will contact you within 2 working days.</p>
+
+            {/* Stepper Header */}
+            {currentStep <= 3 && (
+              <div className="application-stepper-header">
+                <div className={`stepper-node ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
+                  <span className="step-num">1</span>
+                  <span className="step-label">Student Details</span>
+                </div>
+                <div className="stepper-connector"></div>
+                <div className={`stepper-node ${currentStep >= 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}>
+                  <span className="step-num">2</span>
+                  <span className="step-label">Parent Details</span>
+                </div>
+                <div className="stepper-connector"></div>
+                <div className={`stepper-node ${currentStep === 3 ? 'active' : ''}`}>
+                  <span className="step-num">3</span>
+                  <span className="step-label">Review & Submit</span>
+                </div>
               </div>
-            ) : (
-              <form className="admissions-form" onSubmit={handleSubmit}>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="adm-name">Full Name</label>
-                    <input className="form-input" type="text" id="adm-name" name="name" value={formData.name} onChange={handleChange} required />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="adm-email">Email Address</label>
-                    <input className="form-input" type="email" id="adm-email" name="email" value={formData.email} onChange={handleChange} required />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="adm-phone">Phone Number</label>
-                    <input className="form-input" type="tel" id="adm-phone" name="phone" value={formData.phone} onChange={handleChange} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="adm-level">Level of Interest</label>
-                    <select className="form-input" id="adm-level" name="level" value={formData.level} onChange={handleChange} required>
-                      <option value="">Select level</option>
-                      <option value="primary">Primary School</option>
-                      <option value="secondary">Secondary School</option>
-                      <option value="university">University</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="adm-message">Your Message</label>
-                  <textarea className="form-input" id="adm-message" name="message" value={formData.message} onChange={handleChange} placeholder="Tell us about your enquiry..." required></textarea>
-                </div>
-                <button type="submit" className="btn btn--primary">Submit Enquiry</button>
-              </form>
             )}
+
+            {errorMsg && (
+              <div className="form-error-banner" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#FDF2F2', border: '1px solid #F8B4B4', padding: '1rem', borderRadius: '4px', color: '#9B1C1C', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+                <span style={{ fontWeight: 'bold' }}>⚠️</span>
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <div className="application-wizard-container">
+              {/* STEP 1: Student Information */}
+              {currentStep === 1 && (
+                <div className="wizard-step-pane">
+                  <h3 className="wizard-step-title">Step 1: Student Information</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="first_name">First Name <span className="req">*</span></label>
+                      <input className="form-input" type="text" id="first_name" name="first_name" value={formData.first_name} onChange={handleChange} required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="last_name">Last Name <span className="req">*</span></label>
+                      <input className="form-input" type="text" id="last_name" name="last_name" value={formData.last_name} onChange={handleChange} required />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="middle_name">Middle Name</label>
+                      <input className="form-input" type="text" id="middle_name" name="middle_name" value={formData.middle_name} onChange={handleChange} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="gender">Gender <span className="req">*</span></label>
+                      <select className="form-input" id="gender" name="gender" value={formData.gender} onChange={handleChange} required>
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="date_of_birth">Date of Birth <span className="req">*</span></label>
+                      <input className="form-input" type="date" id="date_of_birth" name="date_of_birth" value={formData.date_of_birth} onChange={handleChange} required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="level">Academic Level <span className="req">*</span></label>
+                      <select className="form-input" id="level" name="level" value={formData.level} onChange={handleChange} required>
+                        <option value="">Select Level</option>
+                        <option value="primary">Primary School</option>
+                        <option value="secondary">Secondary School</option>
+                        <option value="university">University</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="grade_applied_for">Grade / Programme Applied For</label>
+                      <input className="form-input" type="text" id="grade_applied_for" name="grade_applied_for" placeholder="e.g. JSS 1, Primary 3, B.Sc Computer Science" value={formData.grade_applied_for} onChange={handleChange} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="previous_school">Previous School Attended</label>
+                      <input className="form-input" type="text" id="previous_school" name="previous_school" value={formData.previous_school} onChange={handleChange} />
+                    </div>
+                  </div>
+                  <div className="wizard-actions">
+                    <div></div>
+                    <button type="button" className="btn btn--primary" onClick={handleNext}>Next: Parent Details →</button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: Parent Details */}
+              {currentStep === 2 && (
+                <div className="wizard-step-pane">
+                  <h3 className="wizard-step-title">Step 2: Parent / Guardian Information</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="parent_first_name">Parent First Name <span className="req">*</span></label>
+                      <input className="form-input" type="text" id="parent_first_name" name="parent_first_name" value={formData.parent_first_name} onChange={handleChange} required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="parent_last_name">Parent Last Name <span className="req">*</span></label>
+                      <input className="form-input" type="text" id="parent_last_name" name="parent_last_name" value={formData.parent_last_name} onChange={handleChange} required />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="parent_email">Parent Email Address <span className="req">*</span></label>
+                      <input className="form-input" type="email" id="parent_email" name="parent_email" value={formData.parent_email} onChange={handleChange} required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="parent_phone">Parent Phone Number <span className="req">*</span></label>
+                      <input className="form-input" type="tel" id="parent_phone" name="parent_phone" value={formData.parent_phone} onChange={handleChange} required />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="form-label" htmlFor="parent_relationship">Relationship to Student <span className="req">*</span></label>
+                      <select className="form-input" id="parent_relationship" name="parent_relationship" value={formData.parent_relationship} onChange={handleChange} required>
+                        <option value="">Select Relationship</option>
+                        <option value="father">Father</option>
+                        <option value="mother">Mother</option>
+                        <option value="guardian">Guardian</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="parent_address">Residential Address <span className="req">*</span></label>
+                    <textarea className="form-input" id="parent_address" name="parent_address" rows="3" value={formData.parent_address} onChange={handleChange} required></textarea>
+                  </div>
+                  <div className="wizard-actions">
+                    <button type="button" className="btn btn--outline" onClick={handlePrev}>← Back</button>
+                    <button type="button" className="btn btn--primary" onClick={handleNext}>Next: Review Details →</button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Review & Confirm */}
+              {currentStep === 3 && (
+                <div className="wizard-step-pane">
+                  <h3 className="wizard-step-title" style={{ marginBottom: '1.5rem' }}>Step 3: Review Your Application</h3>
+                  
+                  <div className="review-section">
+                    <h4 className="review-section-title">🎒 Student Demographics</h4>
+                    <table className="review-table">
+                      <tbody>
+                        <tr>
+                          <th>Full Name:</th>
+                          <td>{formData.first_name} {formData.middle_name} {formData.last_name}</td>
+                          <th>Gender:</th>
+                          <td style={{ textTransform: 'capitalize' }}>{formData.gender}</td>
+                        </tr>
+                        <tr>
+                          <th>Date of Birth:</th>
+                          <td>{formData.date_of_birth}</td>
+                          <th>Academic Level:</th>
+                          <td style={{ textTransform: 'capitalize' }}>{formData.level}</td>
+                        </tr>
+                        <tr>
+                          <th>Grade/Programme:</th>
+                          <td>{formData.grade_applied_for || '—'}</td>
+                          <th>Previous School:</th>
+                          <td>{formData.previous_school || '—'}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="review-section" style={{ marginTop: '1.5rem', marginBottom: '2rem' }}>
+                    <h4 className="review-section-title">👪 Parent / Guardian Details</h4>
+                    <table className="review-table">
+                      <tbody>
+                        <tr>
+                          <th>Parent Name:</th>
+                          <td>{formData.parent_first_name} {formData.parent_last_name}</td>
+                          <th>Relationship:</th>
+                          <td style={{ textTransform: 'capitalize' }}>{formData.parent_relationship}</td>
+                        </tr>
+                        <tr>
+                          <th>Email Address:</th>
+                          <td>{formData.parent_email}</td>
+                          <th>Phone Number:</th>
+                          <td>{formData.parent_phone}</td>
+                        </tr>
+                        <tr>
+                          <th>Address:</th>
+                          <td colSpan="3">{formData.parent_address}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="wizard-actions">
+                    <button type="button" className="btn btn--outline" onClick={handlePrev}>← Back</button>
+                    <button type="button" className="btn btn--gold" onClick={handleSubmit} disabled={loading}>
+                      {loading ? 'Submitting Application...' : 'Submit Application ✓'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: Success Message */}
+              {currentStep === 4 && (
+                <div className="form-success glass-card" style={{ border: '1px solid var(--color-gold)', background: 'rgba(255, 255, 255, 0.9)', boxShadow: '0 8px 32px 0 rgba(201, 168, 76, 0.1)', backdropFilter: 'blur(8px)', textAlign: 'center', padding: '3rem 2rem', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '3rem', color: 'var(--color-gold)', marginBottom: '1rem' }}>✓</div>
+                  <h3 style={{ fontSize: '1.5rem', color: 'var(--color-navy)', marginBottom: '1rem' }}>Application Submitted Successfully!</h3>
+                  <p style={{ fontSize: '0.9375rem', lineHeight: '1.8', maxWidth: '600px', margin: '0 auto 2rem' }}>
+                    Thank you for applying to Grandview Academy. Your application has been logged under student name <strong>{formData.first_name} {formData.last_name}</strong>. 
+                    An admissions officer will review your application and contact you at <strong>{formData.parent_email}</strong> within 2 working days regarding the entrance assessment schedule.
+                  </p>
+                  <button type="button" className="btn btn--primary" onClick={() => {
+                    setFormData({
+                      first_name: '',
+                      last_name: '',
+                      middle_name: '',
+                      date_of_birth: '',
+                      gender: '',
+                      level: '',
+                      previous_school: '',
+                      grade_applied_for: '',
+                      parent_first_name: '',
+                      parent_last_name: '',
+                      parent_email: '',
+                      parent_phone: '',
+                      parent_relationship: '',
+                      parent_address: ''
+                    });
+                    setCurrentStep(1);
+                  }}>Apply for Another Student</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

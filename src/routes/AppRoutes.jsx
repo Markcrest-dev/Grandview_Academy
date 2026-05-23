@@ -13,6 +13,14 @@ import ContactPage from '../pages/public/ContactPage';
 // Auth pages
 import LoginPage from '../pages/auth/LoginPage';
 
+// Portal dashboards
+import AdminDashboard from '../pages/portal/admin/AdminDashboard';
+import AdmissionsPipeline from '../pages/portal/admin/AdmissionsPipeline';
+import StudentDirectory from '../pages/portal/admin/StudentDirectory';
+import TeacherDashboard from '../pages/portal/staff/TeacherDashboard';
+import StudentPortalDashboard from '../pages/portal/student/StudentPortalDashboard';
+import ParentPortalDashboard from '../pages/portal/parent/ParentPortalDashboard';
+
 // Utility pages
 import NotFoundPage from '../pages/NotFoundPage';
 import PortalPlaceholder from '../pages/PortalPlaceholder';
@@ -37,27 +45,41 @@ export default function AppRoutes() {
       {/* ===== Portal Routes (Protected) ===== */}
       <Route path="/portal/admin/*" element={
         <ProtectedRoute allowedRoles={['admin']}>
-          <PortalPlaceholder portalName="Admin" />
+          <Routes>
+            <Route path="/" element={<AdminDashboard />} />
+            <Route path="/admissions" element={<AdmissionsPipeline />} />
+            <Route path="/students" element={<StudentDirectory />} />
+          </Routes>
         </ProtectedRoute>
       } />
+      
       <Route path="/portal/staff/teaching/*" element={
         <ProtectedRoute allowedRoles={['teaching_staff']}>
-          <PortalPlaceholder portalName="Teaching Staff" />
+          <Routes>
+            <Route path="/" element={<TeacherDashboard />} />
+          </Routes>
         </ProtectedRoute>
       } />
+      
       <Route path="/portal/staff/non-teaching/*" element={
         <ProtectedRoute allowedRoles={['non_teaching_staff']}>
           <PortalPlaceholder portalName="Non-Teaching Staff" />
         </ProtectedRoute>
       } />
+      
       <Route path="/portal/parent/*" element={
         <ProtectedRoute allowedRoles={['parent']}>
-          <PortalPlaceholder portalName="Parent" />
+          <Routes>
+            <Route path="/" element={<ParentPortalDashboard />} />
+          </Routes>
         </ProtectedRoute>
       } />
+      
       <Route path="/portal/student/*" element={
         <ProtectedRoute allowedRoles={['student']}>
-          <PortalPlaceholder portalName="Student" />
+          <Routes>
+            <Route path="/" element={<StudentPortalDashboard />} />
+          </Routes>
         </ProtectedRoute>
       } />
 

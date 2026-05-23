@@ -12,6 +12,7 @@ import feesRouter from './fees.js';
 import announcementsRouter from './announcements.js';
 import timetableRouter from './timetable.js';
 import uploadsRouter from './uploads.js';
+import admissionsRouter from './admissions.js';
 
 const router = Router();
 
@@ -29,5 +30,6 @@ router.use('/fees', feesRouter);
 router.use('/announcements', announcementsRouter);
 router.use('/timetable', timetableRouter);
 router.use('/uploads', uploadsRouter);
+router.use('/admissions', admissionsRouter);
 
 export default router;

@@ -1,0 +1,167 @@
+import { useState } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import './PortalLayout.css';
+
+export default function PortalLayout({ children }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  if (!user) return null;
+
+  const role = user.role;
+  const profile = user.profile || {};
+  const userEmail = user.email || '';
+
+  // Get full name based on role
+  let fullName = 'System Administrator';
+  let detailLabel = 'Admin Portal';
+
+  if (role === 'student' && profile) {
+    fullName = `${profile.firstName} ${profile.lastName}`;
+    detailLabel = `Student — ${profile.admissionNumber || ''}`;
+  } else if ((role === 'teaching_staff' || role === 'non_teaching_staff') && profile) {
+    fullName = `${profile.firstName} ${profile.lastName}`;
+    detailLabel = `${profile.designation || 'Staff'} — ${profile.staffIdNumber || ''}`;
+  } else if (role === 'parent' && profile) {
+    fullName = `${profile.firstName} ${profile.lastName}`;
+    detailLabel = `Parent Portal — ${profile.parentIdNumber || ''}`;
+  }
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  // Define navigation links based on roles
+  const getNavLinks = () => {
+    switch (role) {
+      case 'admin':
+        return [
+          { path: '/portal/admin', label: 'Overview', icon: '📊' },
+          { path: '/portal/admin/admissions', label: 'Admissions Board', icon: '📝' },
+          { path: '/portal/admin/students', label: 'Student Directory', icon: '🎒' },
+        ];
+      case 'teaching_staff':
+        return [
+          { path: '/portal/staff/teaching', label: 'My Classroom', icon: '🏫' },
+        ];
+      case 'student':
+        return [
+          { path: '/portal/student', label: 'My Dashboard', icon: '🎒' },
+        ];
+      case 'parent':
+        return [
+          { path: '/portal/parent', label: 'Children Profiles', icon: '👪' },
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const navLinks = getNavLinks();
+
+  return (
+    <div className="portal-frame">
+      {/* Sidebar for Desktop */}
+      <aside className={`portal-sidebar ${mobileOpen ? 'portal-sidebar--open' : ''}`}>
+        <div className="portal-sidebar__header">
+          <Link to="/" className="portal-sidebar__logo">
+            <span className="logo-icon">🏰</span>
+            <div className="logo-text">
+              <span className="logo-main">Grandview</span>
+              <span className="logo-sub">Academy SMS</span>
+            </div>
+          </Link>
+        </div>
+
+        {/* User Card */}
+        <div className="portal-sidebar__user">
+          <div className="user-avatar">
+            {profile.photoUrl ? (
+              <img src={profile.photoUrl} alt={fullName} className="user-avatar-img" />
+            ) : (
+              <span className="user-avatar-initial">
+                {fullName.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="user-meta">
+            <h4 className="user-name">{fullName}</h4>
+            <span className="user-role">{detailLabel}</span>
+          </div>
+        </div>
+
+        <nav className="portal-sidebar__nav">
+          <ul className="nav-list">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.path || location.pathname.startsWith(link.path + '/');
+              return (
+                <li key={link.path} className="nav-item">
+                  <Link
+                    to={link.path}
+                    className={`nav-link ${isActive ? 'nav-link--active' : ''}`}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span className="nav-icon">{link.icon}</span>
+                    <span className="nav-label">{link.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        <div className="portal-sidebar__footer">
+          <button className="logout-btn" onClick={handleLogout}>
+            <span className="logout-btn__icon">🚪</span>
+            <span className="logout-btn__label">Log Out</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="portal-content-wrapper">
+        {/* Top Navbar */}
+        <header className="portal-header">
+          <div className="portal-header__left">
+            <button
+              className="portal-mobile-toggle"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle navigation"
+            >
+              ☰
+            </button>
+            <div className="academic-timeline">
+              <span className="timeline-badge">Active</span>
+              <span className="timeline-text">2026/2027 Session | First Term</span>
+            </div>
+          </div>
+          
+          <div className="portal-header__right">
+            <div className="header-info">
+              <span className="header-email">{userEmail}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Content Pane */}
+        <main className="portal-main-pane">
+          <div className="portal-container">
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile Drawer Overlay */}
+      {mobileOpen && (
+        <div
+          className="portal-mobile-overlay"
+          onClick={() => setMobileOpen(false)}
+        ></div>
+      )}
+    </div>
+  );
+}
