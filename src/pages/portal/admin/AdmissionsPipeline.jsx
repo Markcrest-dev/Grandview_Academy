@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../../utils/api';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import './AdmissionsPipeline.css';
 
@@ -28,14 +29,14 @@ export default function AdmissionsPipeline() {
       if (filterLevel) url += `&level=${filterLevel}`;
       if (searchQuery) url += `&search=${searchQuery}`;
 
-      const res = await fetch(url);
+      const res = await fetch(apiUrl(url));
       const resData = await res.json();
       if (resData.success) {
         setApplications(resData.data);
       }
 
       // Load classes for the enrollment dialog
-      const classRes = await fetch('/api/classes?limit=100');
+      const classRes = await fetch(apiUrl('/api/classes?limit=100'));
       const classData = await classRes.json();
       if (classData.success) {
         setClasses(classData.data);
@@ -59,7 +60,7 @@ export default function AdmissionsPipeline() {
   // Move application to under review
   const handleMoveToReview = async (appId) => {
     try {
-      const res = await fetch(`/api/admissions/applications/${appId}/status`, {
+      const res = await fetch(apiUrl(`/api/admissions/applications/${appId}/status`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'under_review' }),
@@ -90,7 +91,7 @@ export default function AdmissionsPipeline() {
     }
 
     try {
-      const res = await fetch(`/api/admissions/applications/${selectedApp.id}/status`, {
+      const res = await fetch(apiUrl(`/api/admissions/applications/${selectedApp.id}/status`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'rejected', rejection_reason: rejectionReason }),
@@ -126,7 +127,7 @@ export default function AdmissionsPipeline() {
     setEnrollError(null);
 
     try {
-      const res = await fetch(`/api/admissions/applications/${selectedApp.id}/admit`, {
+      const res = await fetch(apiUrl(`/api/admissions/applications/${selectedApp.id}/admit`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ class_id: selectedClassId }),

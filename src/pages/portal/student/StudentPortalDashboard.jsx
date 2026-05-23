@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../../utils/api';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -33,7 +34,7 @@ export default function StudentPortalDashboard() {
 
       setLoading(true);
       try {
-        const res = await fetch(`/api/students/${user.profile.id}`, { headers: authHeaders });
+        const res = await fetch(apiUrl(`/api/students/${user.profile.id}`), { headers: authHeaders });
         const resData = await res.json();
         
         if (resData.success) {
@@ -57,40 +58,40 @@ export default function StudentPortalDashboard() {
       setLoadingData(true);
       try {
         if (activeTab === 'timetable' && profileData.classes?.id) {
-          const res = await fetch(`/api/timetable/class/${profileData.classes.id}`, { headers: authHeaders });
+          const res = await fetch(apiUrl(`/api/timetable/class/${profileData.classes.id}`), { headers: authHeaders });
           const resData = await res.json();
           if (resData.success) {
             setTimetableSlots(resData.data);
           }
         } else if (activeTab === 'attendance') {
-          const res = await fetch(`/api/attendance/student/${profileData.id}`, { headers: authHeaders });
+          const res = await fetch(apiUrl(`/api/attendance/student/${profileData.id}`), { headers: authHeaders });
           const resData = await res.json();
           if (resData.success) {
             setAttendanceData(resData.data);
           }
         } else if (activeTab === 'report') {
-          const res = await fetch(`/api/grades/student/${profileData.id}`, { headers: authHeaders });
+          const res = await fetch(apiUrl(`/api/grades/student/${profileData.id}`), { headers: authHeaders });
           const resData = await res.json();
           if (resData.success) {
             setGradesReport(resData.data);
           }
         } else if (activeTab === 'materials' && profileData.classes?.id) {
           // Fetch academic documents linked to their class ID
-          const res = await fetch(`/api/documents?related_to=class&related_id=${profileData.classes.id}`, { headers: authHeaders });
+          const res = await fetch(apiUrl(`/api/documents?related_to=class&related_id=${profileData.classes.id}`), { headers: authHeaders });
           const resData = await res.json();
           if (resData.success) {
             setMaterials(resData.data);
           }
         } else if (activeTab === 'fees') {
           // Fetch fee payments history registered on their profile
-          const payRes = await fetch(`/api/fees/payments/student/${profileData.id}`, { headers: authHeaders });
+          const payRes = await fetch(apiUrl(`/api/fees/payments/student/${profileData.id}`), { headers: authHeaders });
           const payData = await payRes.json();
           if (payData.success) {
             setPayments(payData.data);
           }
 
           // Fetch billing fee structures registered on their level bracket
-          const structRes = await fetch(`/api/fees/structures?level=${profileData.level}`, { headers: authHeaders });
+          const structRes = await fetch(apiUrl(`/api/fees/structures?level=${profileData.level}`), { headers: authHeaders });
           const structData = await structRes.json();
           if (structData.success) {
             setFeeStructures(structData.data);

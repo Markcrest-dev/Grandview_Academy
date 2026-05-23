@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../../../utils/api';
 
 export default function LibrarianDashboard() {
   const [books, setBooks] = useState([]);
@@ -35,7 +36,7 @@ export default function LibrarianDashboard() {
   const loadLibraryData = async () => {
     setLoading(true);
     try {
-      const bookRes = await fetch('/api/library/books', { headers: authHeaders });
+      const bookRes = await fetch(apiUrl('/api/library/books'), { headers: authHeaders });
       const bookData = await bookRes.json();
       if (bookData.success) {
         setBooks(bookData.data);
@@ -44,7 +45,7 @@ export default function LibrarianDashboard() {
         }
       }
 
-      const borrowRes = await fetch('/api/library/borrow', { headers: authHeaders });
+      const borrowRes = await fetch(apiUrl('/api/library/borrow'), { headers: authHeaders });
       const borrowData = await borrowRes.json();
       if (borrowData.success) {
         setBorrowLogs(borrowData.data);
@@ -66,7 +67,7 @@ export default function LibrarianDashboard() {
     setMessage({ text: '', type: '' });
 
     try {
-      const res = await fetch('/api/library/books', {
+      const res = await fetch(apiUrl('/api/library/books'), {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(bookForm)
@@ -92,7 +93,7 @@ export default function LibrarianDashboard() {
     setMessage({ text: '', type: '' });
 
     try {
-      const res = await fetch('/api/library/borrow', {
+      const res = await fetch(apiUrl('/api/library/borrow'), {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(issueForm)
@@ -116,7 +117,7 @@ export default function LibrarianDashboard() {
   const handleReturnBook = async (borrowId) => {
     setMessage({ text: '', type: '' });
     try {
-      const res = await fetch(`/api/library/borrow/${borrowId}/return`, {
+      const res = await fetch(apiUrl(`/api/library/borrow/${borrowId}/return`), {
         method: 'PUT',
         headers: authHeaders
       });

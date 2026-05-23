@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../../../utils/api';
 
 export default function NurseDashboard() {
   const [records, setRecords] = useState([]);
@@ -42,13 +43,13 @@ export default function NurseDashboard() {
   const loadMedicalData = async () => {
     setLoading(true);
     try {
-      const recordsRes = await fetch('/api/medical/records', { headers: authHeaders });
+      const recordsRes = await fetch(apiUrl('/api/medical/records'), { headers: authHeaders });
       const recordsData = await recordsRes.json();
       if (recordsData.success) {
         setRecords(recordsData.data);
       }
 
-      const visitsRes = await fetch('/api/medical/visits', { headers: authHeaders });
+      const visitsRes = await fetch(apiUrl('/api/medical/visits'), { headers: authHeaders });
       const visitsData = await visitsRes.json();
       if (visitsData.success) {
         setVisits(visitsData.data);
@@ -70,7 +71,7 @@ export default function NurseDashboard() {
     setMessage({ text: '', type: '' });
 
     try {
-      const res = await fetch('/api/medical/records', {
+      const res = await fetch(apiUrl('/api/medical/records'), {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(chartForm)
@@ -97,7 +98,7 @@ export default function NurseDashboard() {
     setMessage({ text: '', type: '' });
 
     try {
-      const res = await fetch('/api/medical/visits', {
+      const res = await fetch(apiUrl('/api/medical/visits'), {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(visitForm)

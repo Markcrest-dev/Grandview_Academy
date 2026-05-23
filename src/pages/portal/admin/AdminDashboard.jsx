@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../../utils/api';
 import { useNavigate, Link } from 'react-router-dom';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import './AdminDashboard.css';
@@ -19,12 +20,12 @@ export default function AdminDashboard() {
     async function loadDashboardData() {
       try {
         // Fetch students to count
-        const studResponse = await fetch('/api/students?limit=1');
+        const studResponse = await fetch(apiUrl('/api/students?limit=1'));
         const studData = await studResponse.json();
         const activeStudentsCount = studData.success && studData.pagination ? studData.pagination.total : 1;
 
         // Fetch pending admissions
-        const appResponse = await fetch('/api/admissions/applications?status=pending&limit=5');
+        const appResponse = await fetch(apiUrl('/api/admissions/applications?status=pending&limit=5'));
         const appData = await appResponse.json();
         
         let pendingCount = 0;
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
         }
 
         // Fetch classes
-        const classResponse = await fetch('/api/classes?limit=1');
+        const classResponse = await fetch(apiUrl('/api/classes?limit=1'));
         const classData = await classResponse.json();
         const classesCount = classData.success && classData.pagination ? classData.pagination.total : 1;
 

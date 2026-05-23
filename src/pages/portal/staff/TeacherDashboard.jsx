@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../../utils/api';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -42,10 +43,10 @@ export default function TeacherDashboard() {
       setLoading(true);
       try {
         // Fetch terms
-        const termsRes = await fetch('/api/auth/me', { headers: authHeaders }); // standard fallback
+        const termsRes = await fetch(apiUrl('/api/auth/me'), { headers: authHeaders }); // standard fallback
         // We will seed terms statically or fetch from CENTRAL terms API if available
         // Let's first fetch all class data to locate the class matched with this teacher
-        const classRes = await fetch('/api/classes?limit=100', { headers: authHeaders });
+        const classRes = await fetch(apiUrl('/api/classes?limit=100'), { headers: authHeaders });
         const classData = await classRes.json();
         
         if (classData.success) {
@@ -55,14 +56,14 @@ export default function TeacherDashboard() {
             setAssignedClass(matchedClass);
             
             // Fetch students enrolled in this class
-            const studRes = await fetch(`/api/classes/${matchedClass.id}/students?limit=100`, { headers: authHeaders });
+            const studRes = await fetch(apiUrl(`/api/classes/${matchedClass.id}/students?limit=100`), { headers: authHeaders });
             const studData = await studRes.json();
             if (studData.success) {
               setStudents(studData.data);
             }
 
             // Fetch subjects matching this academic level
-            const subRes = await fetch(`/api/subjects?level=${matchedClass.level}&limit=100`, { headers: authHeaders });
+            const subRes = await fetch(apiUrl(`/api/subjects?level=${matchedClass.level}&limit=100`), { headers: authHeaders });
             const subData = await subRes.json();
             if (subData.success) {
               setSubjects(subData.data);
@@ -76,7 +77,7 @@ export default function TeacherDashboard() {
         // Fetch terms from Central Supabase schema
         // If there's no custom terms endpoint, we can fall back to the seeded term ID
         // Let's resolve the current active term from the database!
-        const termRes = await fetch('/api/attendance', { headers: authHeaders }); // helps extract active configuration
+        const termRes = await fetch(apiUrl('/api/attendance'), { headers: authHeaders }); // helps extract active configuration
         // Seed some terms to prevent select issues if empty
         setTerms([
           { id: 'first-term-seeded-id', name: 'First Term' },
@@ -101,7 +102,7 @@ export default function TeacherDashboard() {
       if (activeTab !== 'timetable' || !user?.profile?.id) return;
       setLoadingData(true);
       try {
-        const res = await fetch(`/api/timetable/teacher/${user.profile.id}`, { headers: authHeaders });
+        const res = await fetch(apiUrl(`/api/timetable/teacher/${user.profile.id}`), { headers: authHeaders });
         const data = await res.json();
         if (data.success) {
           setTimetableSlots(data.data);
@@ -121,7 +122,7 @@ export default function TeacherDashboard() {
       if (activeTab !== 'attendance' || !assignedClass || !attendanceDate) return;
       setLoadingData(true);
       try {
-        const url = `/api/attendance?class_id=${assignedClass.id}&date=${attendanceDate}`;
+        const url = apiUrl(`/api/attendance?class_id=${assignedClass.id}&date=${attendanceDate}`);
         const res = await fetch(url, { headers: authHeaders });
         const resData = await res.json();
         
@@ -155,7 +156,7 @@ export default function TeacherDashboard() {
       if (activeTab !== 'grades' || !assignedClass || !selectedSubjectId || !selectedTermId || !selectedAssessment) return;
       setLoadingData(true);
       try {
-        const url = `/api/grades?class_id=${assignedClass.id}&subject_id=${selectedSubjectId}&term_id=${selectedTermId}`;
+        const url = apiUrl(`/api/grades?class_id=${assignedClass.id}&subject_id=${selectedSubjectId}&term_id=${selectedTermId}`);
         const res = await fetch(url, { headers: authHeaders });
         const resData = await res.json();
 
@@ -195,7 +196,7 @@ export default function TeacherDashboard() {
         remarks: attendanceRecords[studentId].remarks
       }));
 
-      const res = await fetch('/api/attendance', {
+      const res = await fetch(apiUrl('/api/attendance'), {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
@@ -238,7 +239,7 @@ export default function TeacherDashboard() {
         return;
       }
 
-      const res = await fetch('/api/grades', {
+      const res = await fetch(apiUrl('/api/grades'), {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({

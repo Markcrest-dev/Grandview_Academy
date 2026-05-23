@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../../utils/api';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -54,7 +55,7 @@ export default function ParentPortalDashboard() {
 
       setLoading(true);
       try {
-        const res = await fetch('/api/students/family/children', { headers: authHeaders });
+        const res = await fetch(apiUrl('/api/students/family/children'), { headers: authHeaders });
         const resData = await res.json();
         
         if (resData.success && resData.data.length > 0) {
@@ -80,7 +81,7 @@ export default function ParentPortalDashboard() {
       // Reset tab when switching children to avoid mismatches
       setSubTab('profile');
       try {
-        const res = await fetch(`/api/students/${selectedChildId}`, { headers: authHeaders });
+        const res = await fetch(apiUrl(`/api/students/${selectedChildId}`), { headers: authHeaders });
         const resData = await res.json();
         
         if (resData.success) {
@@ -104,19 +105,19 @@ export default function ParentPortalDashboard() {
       setLoadingMetrics(true);
       try {
         if (subTab === 'timetable' && selectedChildData.classes?.id) {
-          const res = await fetch(`/api/timetable/class/${selectedChildData.classes.id}`, { headers: authHeaders });
+          const res = await fetch(apiUrl(`/api/timetable/class/${selectedChildData.classes.id}`), { headers: authHeaders });
           const resData = await res.json();
           if (resData.success) {
             setTimetableSlots(resData.data);
           }
         } else if (subTab === 'attendance') {
-          const res = await fetch(`/api/attendance/student/${selectedChildId}`, { headers: authHeaders });
+          const res = await fetch(apiUrl(`/api/attendance/student/${selectedChildId}`), { headers: authHeaders });
           const resData = await res.json();
           if (resData.success) {
             setAttendanceData(resData.data);
           }
         } else if (subTab === 'report') {
-          const res = await fetch(`/api/grades/student/${selectedChildId}`, { headers: authHeaders });
+          const res = await fetch(apiUrl(`/api/grades/student/${selectedChildId}`), { headers: authHeaders });
           const resData = await res.json();
           if (resData.success) {
             setGradesReport(resData.data);
@@ -125,13 +126,13 @@ export default function ParentPortalDashboard() {
           await refreshFeesData();
         } else if (subTab === 'alerts') {
           // Fetch announcements
-          const res = await fetch('/api/announcements', { headers: authHeaders });
+          const res = await fetch(apiUrl('/api/announcements'), { headers: authHeaders });
           const resData = await res.json();
           if (resData.success) {
             setAnnouncements(resData.data);
           }
           // Fetch attendance logs for absent alerts parser
-          const attRes = await fetch(`/api/attendance/student/${selectedChildId}`, { headers: authHeaders });
+          const attRes = await fetch(apiUrl(`/api/attendance/student/${selectedChildId}`), { headers: authHeaders });
           const attData = await attRes.json();
           if (attData.success) {
             setAttendanceData(attData.data);
@@ -151,13 +152,13 @@ export default function ParentPortalDashboard() {
   const refreshFeesData = async () => {
     if (!selectedChildId || !selectedChildData) return;
     try {
-      const payRes = await fetch(`/api/fees/payments/student/${selectedChildId}`, { headers: authHeaders });
+      const payRes = await fetch(apiUrl(`/api/fees/payments/student/${selectedChildId}`), { headers: authHeaders });
       const payData = await payRes.json();
       if (payData.success) {
         setPayments(payData.data);
       }
 
-      const structRes = await fetch(`/api/fees/structures?level=${selectedChildData.level}`, { headers: authHeaders });
+      const structRes = await fetch(apiUrl(`/api/fees/structures?level=${selectedChildData.level}`), { headers: authHeaders });
       const structData = await structRes.json();
       if (structData.success) {
         setFeeStructures(structData.data);
@@ -221,7 +222,7 @@ export default function ParentPortalDashboard() {
     // Simulate Interswitch / Paystack Gateway handshake delay
     setTimeout(async () => {
       try {
-        const res = await fetch('/api/fees/payments', {
+        const res = await fetch(apiUrl('/api/fees/payments'), {
           method: 'POST',
           headers: authHeaders,
           body: JSON.stringify({

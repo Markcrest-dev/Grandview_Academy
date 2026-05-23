@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { apiUrl } from '../utils/api';
 
 const AuthContext = createContext(null);
 
@@ -20,7 +21,7 @@ export function AuthProvider({ children }) {
           setUser(parsedUser);
 
           // Verify session token with backend on reload to ensure it hasn't expired
-          const response = await fetch('/api/auth/me', {
+          const response = await fetch(apiUrl('/api/auth/me'), {
             headers: {
               'Authorization': `Bearer ${storedToken}`,
             },
@@ -60,7 +61,7 @@ export function AuthProvider({ children }) {
    */
   const login = async (identifier, password, role) => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, password, role }),
@@ -105,7 +106,7 @@ export function AuthProvider({ children }) {
    */
   const verify2FA = async (tempToken, code) => {
     try {
-      const response = await fetch('/api/auth/verify-2fa', {
+      const response = await fetch(apiUrl('/api/auth/verify-2fa'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, code }),
@@ -147,7 +148,7 @@ export function AuthProvider({ children }) {
    */
   const changePassword = async (currentPassword, newPassword) => {
     try {
-      const response = await fetch('/api/auth/change-password', {
+      const response = await fetch(apiUrl('/api/auth/change-password'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -36,28 +36,30 @@ app.use((req, res, next) => {
 // Global Error Handler
 app.use(errorHandler);
 
-// Start Server
-async function startServer() {
-  console.log('🔄 Starting Grandview Academy SMS API Server...');
+// Start Server (only when NOT running on Vercel's serverless runtime)
+if (process.env.VERCEL !== '1') {
+  async function startServer() {
+    console.log('🔄 Starting Grandview Academy SMS API Server...');
 
-  try {
-    // Test Database connection
-    console.log('📡 Testing connection to Supabase...');
-    const connected = await testConnection();
-    if (connected) {
-      console.log('✅ Supabase PostgreSQL connected successfully.');
+    try {
+      // Test Database connection
+      console.log('📡 Testing connection to Supabase...');
+      const connected = await testConnection();
+      if (connected) {
+        console.log('✅ Supabase PostgreSQL connected successfully.');
+      }
+    } catch (err) {
+      console.warn(`⚠️  Database warning: ${err.message}`);
+      console.warn('   The server will run, but database queries may fail until Supabase credentials in .env are correct.');
     }
-  } catch (err) {
-    console.warn(`⚠️  Database warning: ${err.message}`);
-    console.warn('   The server will run, but database queries may fail until Supabase credentials in .env are correct.');
+
+    app.listen(env.port, () => {
+      console.log(`🚀 Server is running in ${env.nodeEnv} mode on port ${env.port}`);
+      console.log(`🔗 Local API Health URL: http://localhost:${env.port}/api/health`);
+    });
   }
 
-  app.listen(env.port, () => {
-    console.log(`🚀 Server is running in ${env.nodeEnv} mode on port ${env.port}`);
-    console.log(`🔗 Local API Health URL: http://localhost:${env.port}/api/health`);
-  });
+  startServer();
 }
-
-startServer();
 
 export default app;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { sendSuccess } from '../../../../../backend/src/utils/apiResponse'; // React context handles its own helpers
+import { apiUrl } from '../../../../utils/api';
 
 export default function BursarDashboard() {
   const [structures, setStructures] = useState([]);
@@ -41,7 +41,7 @@ export default function BursarDashboard() {
       setLoading(true);
       try {
         // Fetch fee structures
-        const structRes = await fetch('/api/fees/structures', { headers: authHeaders });
+        const structRes = await fetch(apiUrl('/api/fees/structures'), { headers: authHeaders });
         const structData = await structRes.json();
         if (structData.success) {
           setStructures(structData.data);
@@ -52,14 +52,14 @@ export default function BursarDashboard() {
         }
 
         // Fetch payments
-        const payRes = await fetch('/api/fees/payments', { headers: authHeaders });
+        const payRes = await fetch(apiUrl('/api/fees/payments'), { headers: authHeaders });
         const payData = await payRes.json();
         if (payData.success) {
           setPayments(payData.data);
         }
 
         // Fetch active students directory for dropdown selection
-        const studentRes = await fetch('/api/students?limit=50', { headers: authHeaders });
+        const studentRes = await fetch(apiUrl('/api/students?limit=50'), { headers: authHeaders });
         const studentData = await studentRes.json();
         if (studentData.success) {
           setStudents(studentData.data);
@@ -82,7 +82,7 @@ export default function BursarDashboard() {
     setMessage({ text: '', type: '' });
 
     try {
-      const res = await fetch('/api/fees/structures', {
+      const res = await fetch(apiUrl('/api/fees/structures'), {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(feeForm)
@@ -108,7 +108,7 @@ export default function BursarDashboard() {
     setMessage({ text: '', type: '' });
 
     try {
-      const res = await fetch('/api/fees/payments', {
+      const res = await fetch(apiUrl('/api/fees/payments'), {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(paymentForm)

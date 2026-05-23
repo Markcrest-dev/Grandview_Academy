@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiUrl } from '../../utils/api';
 import PageWrapper from '../../components/layout/PageWrapper';
 import './AdmissionsPage.css';
 
@@ -100,7 +101,7 @@ export default function AdmissionsPage() {
     setErrorMsg(null);
 
     try {
-      const response = await fetch('/api/admissions/apply', {
+      const response = await fetch(apiUrl('/api/admissions/apply'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

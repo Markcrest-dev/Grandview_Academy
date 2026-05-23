@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '../../../utils/api';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import './StudentDirectory.css';
 
@@ -36,14 +37,14 @@ export default function StudentDirectory() {
       if (filterStatus) url += `&status=${filterStatus}`;
       if (searchQuery) url += `&search=${searchQuery}`;
 
-      const res = await fetch(url);
+      const res = await fetch(apiUrl(url));
       const resData = await res.json();
       if (resData.success) {
         setStudents(resData.data);
       }
 
       // Load classes for filtering and re-assignments
-      const classRes = await fetch('/api/classes?limit=100');
+      const classRes = await fetch(apiUrl('/api/classes?limit=100'));
       const classData = await classRes.json();
       if (classData.success) {
         setClasses(classData.data);
@@ -67,7 +68,7 @@ export default function StudentDirectory() {
   // View student detail
   const handleSelectStudent = async (studentId) => {
     try {
-      const res = await fetch(`/api/students/${studentId}`);
+      const res = await fetch(apiUrl(`/api/students/${studentId}`));
       const resData = await res.json();
       if (resData.success) {
         setSelectedStudent(resData.data);
@@ -107,7 +108,7 @@ export default function StudentDirectory() {
     setEditError(null);
 
     try {
-      const res = await fetch(`/api/students/${selectedStudent.id}`, {
+      const res = await fetch(apiUrl(`/api/students/${selectedStudent.id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editFormData),
