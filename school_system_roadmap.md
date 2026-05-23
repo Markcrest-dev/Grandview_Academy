@@ -677,11 +677,11 @@ These are the non-negotiable rules to follow throughout development to keep the 
 | Phase 3 — Authentication System | ✅ Completed |
 | Phase 4 — Admin Portal | ✅ Completed |
 | Phase 5 — Teaching Staff Portal | ✅ Completed |
-| Phase 6 — Non-Teaching Staff Portal | ⬜ Not Started |
+| Phase 6 — Non-Teaching Staff Portal | ✅ Completed |
 | Phase 7 — Student Portal | ✅ Completed |
 | Phase 8 — Parent Portal | ✅ Completed |
 | Phase 9 — Public Website | ✅ Completed |
-| Phase 10 — Testing & Security Audit | ⬜ Not Started |
+| Phase 10 — Testing & Security Audit | ✅ Completed |
 | Phase 11 — Deployment | ⬜ Not Started |
 
 ---

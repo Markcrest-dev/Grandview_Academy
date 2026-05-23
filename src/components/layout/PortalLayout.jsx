@@ -35,6 +35,22 @@ export default function PortalLayout({ children }) {
     navigate('/');
   };
 
+  // Generate deterministic real person image based on email if photoUrl is missing
+  const getProfileImage = (profile, email) => {
+    if (profile.photoUrl) return profile.photoUrl;
+    if (profile.photo_url) return profile.photo_url;
+    if (!email) return null;
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) {
+      hash = email.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % 90;
+    const gender = (Math.abs(hash) % 2 === 0) ? 'men' : 'women';
+    return `https://randomuser.me/api/portraits/${gender}/${index}.jpg`;
+  };
+
+  const displayPhotoUrl = getProfileImage(profile, userEmail);
+
   // Define navigation links based on roles
   const getNavLinks = () => {
     switch (role) {
@@ -92,8 +108,8 @@ export default function PortalLayout({ children }) {
         {/* User Card */}
         <div className="portal-sidebar__user">
           <div className="user-avatar">
-            {profile.photoUrl ? (
-              <img src={profile.photoUrl} alt={fullName} className="user-avatar-img" />
+            {displayPhotoUrl ? (
+              <img src={displayPhotoUrl} alt={fullName} className="user-avatar-img" />
             ) : (
               <span className="user-avatar-initial">
                 {fullName.charAt(0).toUpperCase()}

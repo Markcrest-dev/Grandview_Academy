@@ -15,7 +15,11 @@ const staffData = [
   { name: 'Mrs. Chidinma Nwosu', title: 'Head of Arts Department', department: 'Arts', level: 'secondary', email: 'c.nwosu@grandviewacademy.edu.ng' },
   { name: 'Dr. Ibrahim Musa', title: 'Senior Lecturer — Law', department: 'Law', level: 'university', email: 'i.musa@grandviewacademy.edu.ng' },
   { name: 'Ms. Blessing Ojo', title: 'Primary Class Teacher — Year 2', department: 'Primary Education', level: 'primary', email: 'b.ojo@grandviewacademy.edu.ng' },
-];
+].map((staff, i) => {
+  const gender = i % 2 === 0 ? 'men' : 'women';
+  staff.photoUrl = `https://randomuser.me/api/portraits/${gender}/${i + 20}.jpg`;
+  return staff;
+});
 
 const filters = [
   { value: 'all', label: 'All Levels' },
@@ -82,8 +86,12 @@ export default function StaffDirectoryPage() {
           <div className="staff-grid">
             {filtered.map((staff, i) => (
               <div key={i} className="staff-card">
-                <div className="staff-card__avatar">
-                  {staff.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                <div className="staff-card__avatar" style={{ padding: 0, overflow: 'hidden' }}>
+                  <img 
+                    src={staff.photoUrl} 
+                    alt={staff.name} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  />
                 </div>
                 <div className="staff-card__info">
                   <h3 className="staff-card__name">{staff.name}</h3>

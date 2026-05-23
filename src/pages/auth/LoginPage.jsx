@@ -42,6 +42,7 @@ export default function LoginPage() {
   const [tempToken, setTempToken] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   if (!config) {
     return (
@@ -167,20 +168,40 @@ export default function LoginPage() {
                   disabled={loading}
                 />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ position: 'relative' }}>
                 <label className="form-label font-medium" htmlFor="login-password">Password</label>
-                <input
-                  className="form-input transition-all duration-200"
-                  type="password"
-                  id="login-password"
-                  name="password"
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  autoComplete="current-password"
-                  required
-                  disabled={loading}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="form-input transition-all duration-200"
+                    type={showPassword ? 'text' : 'password'}
+                    id="login-password"
+                    name="password"
+                    placeholder="Enter your password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    autoComplete="current-password"
+                    required
+                    disabled={loading}
+                    style={{ paddingRight: '40px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      color: '#666'
+                    }}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
               <button 
                 type="submit" 
