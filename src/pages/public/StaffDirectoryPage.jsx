@@ -15,9 +15,9 @@ const staffData = [
   { name: 'Mrs. Chidinma Nwosu', title: 'Head of Arts Department', department: 'Arts', level: 'secondary', email: 'c.nwosu@grandviewacademy.edu.ng' },
   { name: 'Dr. Ibrahim Musa', title: 'Senior Lecturer — Law', department: 'Law', level: 'university', email: 'i.musa@grandviewacademy.edu.ng' },
   { name: 'Ms. Blessing Ojo', title: 'Primary Class Teacher — Year 2', department: 'Primary Education', level: 'primary', email: 'b.ojo@grandviewacademy.edu.ng' },
-].map((staff, i) => {
-  const gender = i % 2 === 0 ? 'men' : 'women';
-  staff.photoUrl = `https://randomuser.me/api/portraits/${gender}/${i + 20}.jpg`;
+].map((staff) => {
+  const seed = encodeURIComponent(staff.email);
+  staff.photoUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=brown,darkBrown,black`;
   return staff;
 });
 
