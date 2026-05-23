@@ -270,7 +270,14 @@ export default function AdmissionsPipeline() {
                 {/* Avatar Banner */}
                 <div className="panel-avatar-block">
                   <div className="large-avatar">
-                    {selectedApp.first_name.charAt(0).toUpperCase()}
+                    {(() => {
+                      const email = selectedApp.parent_email || selectedApp.first_name || '';
+                      let hash = 0;
+                      for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+                      const idx = Math.abs(hash) % 90;
+                      const g = selectedApp.gender === 'female' ? 'women' : 'men';
+                      return <img src={`https://randomuser.me/api/portraits/${g}/${idx}.jpg`} alt={selectedApp.first_name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />;
+                    })()}
                   </div>
                   <h2 className="panel-name">{selectedApp.first_name} {selectedApp.last_name}</h2>
                   <span className={`status-badge status-badge--${selectedApp.status}`} style={{ margin: '0.5rem auto 0', display: 'inline-block' }}>

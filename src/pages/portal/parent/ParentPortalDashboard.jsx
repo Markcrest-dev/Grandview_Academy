@@ -449,11 +449,17 @@ export default function ParentPortalDashboard() {
 
                       <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
                         <div className="large-avatar" style={{ margin: '0', width: '70px', height: '70px', fontSize: '1.75rem', flexShrink: 0 }}>
-                          {selectedChildData.photo_url ? (
-                            <img src={selectedChildData.photo_url} alt={selectedChildData.first_name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                          ) : (
-                            selectedChildData.first_name.charAt(0).toUpperCase()
-                          )}
+                          {(() => {
+                            const imgUrl = selectedChildData.photo_url || (() => {
+                              const email = selectedChildData.users?.email || '';
+                              let hash = 0;
+                              for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+                              const idx = Math.abs(hash) % 90;
+                              const g = (Math.abs(hash) % 2 === 0) ? 'men' : 'women';
+                              return `https://randomuser.me/api/portraits/${g}/${idx}.jpg`;
+                            })();
+                            return <img src={imgUrl} alt={selectedChildData.first_name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />;
+                          })()}
                         </div>
 
                         <div style={{ flexGrow: 1, minWidth: '240px' }}>

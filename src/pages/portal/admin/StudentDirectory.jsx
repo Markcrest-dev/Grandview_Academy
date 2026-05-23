@@ -264,11 +264,17 @@ export default function StudentDirectory() {
                 {/* Profile Header */}
                 <div className="panel-avatar-block">
                   <div className="large-avatar">
-                    {selectedStudent.photo_url ? (
-                      <img src={selectedStudent.photo_url} alt={selectedStudent.first_name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                    ) : (
-                      selectedStudent.first_name.charAt(0).toUpperCase()
-                    )}
+                    {(() => {
+                      const imgUrl = selectedStudent.photo_url || (() => {
+                        const email = selectedStudent.users?.email || selectedStudent.admission_number || '';
+                        let hash = 0;
+                        for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+                        const idx = Math.abs(hash) % 90;
+                        const g = (Math.abs(hash) % 2 === 0) ? 'men' : 'women';
+                        return `https://randomuser.me/api/portraits/${g}/${idx}.jpg`;
+                      })();
+                      return <img src={imgUrl} alt={selectedStudent.first_name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />;
+                    })()}
                   </div>
                   <h2 className="panel-name">{selectedStudent.first_name} {selectedStudent.last_name}</h2>
                   <span className="panel-sub">{selectedStudent.admission_number}</span>
