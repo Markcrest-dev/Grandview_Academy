@@ -56,6 +56,18 @@ export default function PortalLayout({ children }) {
         return [
           { path: '/portal/parent', label: 'Children Profiles', icon: '👪' },
         ];
+      case 'non_teaching_staff': {
+        const dept = (profile.department || '').toLowerCase();
+        const desig = (profile.designation || '').toLowerCase();
+        if (dept.includes('bursary') || dept.includes('finance') || desig.includes('bursar')) {
+          return [{ path: '/portal/staff/non-teaching', label: 'Bursary Control', icon: '💰' }];
+        } else if (dept.includes('library') || desig.includes('librarian')) {
+          return [{ path: '/portal/staff/non-teaching', label: 'Library Catalog', icon: '📚' }];
+        } else if (dept.includes('medical') || dept.includes('health') || desig.includes('nurse') || desig.includes('doctor')) {
+          return [{ path: '/portal/staff/non-teaching', label: 'Sickbay Logs', icon: '🏥' }];
+        }
+        return [{ path: '/portal/staff/non-teaching', label: 'Staff Desk', icon: '📋' }];
+      }
       default:
         return [];
     }

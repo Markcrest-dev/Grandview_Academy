@@ -1,0 +1,64 @@
+{
+  "books": [
+    {
+      "id": "book-1",
+      "title": "Comprehensive Mathematics for Secondary Schools",
+      "author": "A. O. Kalejaiye",
+      "isbn": "978-1234567890",
+      "category": "Mathematics",
+      "total_copies": 15,
+      "available_copies": 14
+    },
+    {
+      "id": "book-2",
+      "title": "New School Chemistry",
+      "author": "Osei Yaw Ababio",
+      "isbn": "978-0987654321",
+      "category": "Science",
+      "total_copies": 10,
+      "available_copies": 9
+    },
+    {
+      "id": "book-3",
+      "title": "The Lion and the Jewel",
+      "author": "Wole Soyinka",
+      "isbn": "978-0195752250",
+      "category": "Literature",
+      "total_copies": 25,
+      "available_copies": 25
+    },
+    {
+      "id": "book-4",
+      "title": "Calculus: Early Transcendentals",
+      "author": "James Stewart",
+      "isbn": "978-0538497909",
+      "category": "University Science",
+      "total_copies": 8,
+      "available_copies": 8
+    }
+  ],
+  "borrow_records": [
+    {
+      "id": "borrow-1",
+      "book_id": "book-1",
+      "student_id": "ga-student-chidi",
+      "student_name": "Chidi Okafor",
+      "admission_number": "GA/2024/001",
+      "borrow_date": "2026-05-10",
+      "return_date": null,
+      "status": "borrowed",
+      "remarks": "Assigned for term prep"
+    },
+    {
+      "id": "borrow-2",
+      "book_id": "book-2",
+      "student_id": "ga-student-chidi",
+      "student_name": "Chidi Okafor",
+      "admission_number": "GA/2024/001",
+      "borrow_date": "2026-04-15",
+      "return_date": "2026-04-29",
+      "status": "returned",
+      "remarks": "Returned in clean condition"
+    }
+  ]
+}

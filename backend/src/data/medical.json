@@ -1,0 +1,30 @@
+{
+  "charts": [
+    {
+      "id": "chart-1",
+      "student_id": "ga-student-chidi",
+      "student_name": "Chidi Okafor",
+      "admission_number": "GA/2024/001",
+      "blood_group": "O+",
+      "genotype": "AA",
+      "allergies": "Peanuts, Penicillin",
+      "chronic_conditions": "Mild Asthma",
+      "emergency_contact_name": "Samuel Okafor",
+      "emergency_contact_phone": "+2348031234567",
+      "medical_history": "Asthma diagnosed in 2020. Uses Albuterol inhaler when active."
+    }
+  ],
+  "visits": [
+    {
+      "id": "visit-1",
+      "student_id": "ga-student-chidi",
+      "student_name": "Chidi Okafor",
+      "admission_number": "GA/2024/001",
+      "visit_date": "2026-05-12T10:30:00.000Z",
+      "symptoms": "Mild wheezing, coughing after gym class.",
+      "diagnosis": "Exercise-induced asthma flare-up.",
+      "treatment": "Administered 2 puffs of Ventolin inhaler. Rested for 30 minutes in sickbay.",
+      "nurse_remarks": "Wheezing resolved. Returned to class. Instructed to keep inhaler in backpack."
+    }
+  ]
+}

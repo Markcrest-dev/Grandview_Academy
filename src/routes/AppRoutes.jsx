@@ -20,6 +20,7 @@ import StudentDirectory from '../pages/portal/admin/StudentDirectory';
 import TeacherDashboard from '../pages/portal/staff/TeacherDashboard';
 import StudentPortalDashboard from '../pages/portal/student/StudentPortalDashboard';
 import ParentPortalDashboard from '../pages/portal/parent/ParentPortalDashboard';
+import NonTeachingRouter from '../pages/portal/staff/non-teaching/NonTeachingRouter';
 
 // Utility pages
 import NotFoundPage from '../pages/NotFoundPage';
@@ -63,7 +64,7 @@ export default function AppRoutes() {
       
       <Route path="/portal/staff/non-teaching/*" element={
         <ProtectedRoute allowedRoles={['non_teaching_staff']}>
-          <PortalPlaceholder portalName="Non-Teaching Staff" />
+          <NonTeachingRouter />
         </ProtectedRoute>
       } />
       

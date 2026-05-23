@@ -13,6 +13,8 @@ import announcementsRouter from './announcements.js';
 import timetableRouter from './timetable.js';
 import uploadsRouter from './uploads.js';
 import admissionsRouter from './admissions.js';
+import libraryRouter from './library.js';
+import medicalRouter from './medical.js';
 
 const router = Router();
 
@@ -31,5 +33,8 @@ router.use('/announcements', announcementsRouter);
 router.use('/timetable', timetableRouter);
 router.use('/uploads', uploadsRouter);
 router.use('/admissions', admissionsRouter);
+router.use('/library', libraryRouter);
+router.use('/medical', medicalRouter);
 
 export default router;
+
