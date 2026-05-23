@@ -16,6 +16,7 @@ import admissionsRouter from './admissions.js';
 import libraryRouter from './library.js';
 import medicalRouter from './medical.js';
 import documentsRouter from './documents.js';
+import parentsRouter from './parents.js';
 
 const router = Router();
 
@@ -37,6 +38,7 @@ router.use('/admissions', admissionsRouter);
 router.use('/library', libraryRouter);
 router.use('/medical', medicalRouter);
 router.use('/documents', documentsRouter);
+router.use('/parents', parentsRouter);
 
 export default router;
 

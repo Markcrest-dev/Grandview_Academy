@@ -362,4 +362,118 @@ router.put('/:id', requireAuth, requireRoles('admin'), async (req, res, next) =>
   }
 });
 
+/**
+ * POST /api/students/:id/link-parent
+ * Link an existing parent profile to a student (Admin-only).
+ * Body: { parent_id }
+ */
+router.post('/:id/link-parent', requireAuth, requireRoles('admin'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { parent_id } = req.body;
+
+    if (!parent_id) {
+      return sendError(res, { message: 'parent_id is required.', statusCode: 400 });
+    }
+
+    // Verify student exists
+    const { data: student } = await supabaseAdmin
+      .from('students')
+      .select('id, first_name, last_name')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!student) {
+      return sendError(res, { message: 'Student profile not found.', statusCode: 404 });
+    }
+
+    // Verify parent exists
+    const { data: parent } = await supabaseAdmin
+      .from('parents')
+      .select('id, first_name, last_name')
+      .eq('id', parent_id)
+      .maybeSingle();
+
+    if (!parent) {
+      return sendError(res, { message: 'Parent profile not found.', statusCode: 404 });
+    }
+
+    // Check for existing link
+    const { data: existing } = await supabaseAdmin
+      .from('parent_student')
+      .select('*')
+      .eq('parent_id', parent_id)
+      .eq('student_id', id)
+      .maybeSingle();
+
+    if (existing) {
+      return sendError(res, { message: 'This parent is already linked to this student.', statusCode: 409 });
+    }
+
+    // Create link
+    const { error } = await supabaseAdmin
+      .from('parent_student')
+      .insert({ parent_id, student_id: id });
+
+    if (error) {
+      return sendError(res, { message: `Failed to link parent: ${error.message}`, statusCode: 500 });
+    }
+
+    // Audit log
+    await supabaseAdmin.from('audit_logs').insert({
+      user_id: req.user.id,
+      action: 'PARENT_STUDENT_LINK',
+      entity_type: 'parent_student',
+      entity_id: id,
+      details: { parent_id, parent_name: `${parent.first_name} ${parent.last_name}`, student_name: `${student.first_name} ${student.last_name}` },
+      ip_address: req.ip
+    });
+
+    sendSuccess(res, {
+      data: { student_id: id, parent_id },
+      message: `Parent ${parent.first_name} ${parent.last_name} linked to student ${student.first_name} ${student.last_name} successfully.`,
+      statusCode: 201
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/students/:id/unlink-parent/:parentId
+ * Unlink a parent profile from a student (Admin-only).
+ */
+router.delete('/:id/unlink-parent/:parentId', requireAuth, requireRoles('admin'), async (req, res, next) => {
+  try {
+    const { id, parentId } = req.params;
+
+    const { error } = await supabaseAdmin
+      .from('parent_student')
+      .delete()
+      .eq('parent_id', parentId)
+      .eq('student_id', id);
+
+    if (error) {
+      return sendError(res, { message: `Failed to unlink parent: ${error.message}`, statusCode: 500 });
+    }
+
+    // Audit log
+    await supabaseAdmin.from('audit_logs').insert({
+      user_id: req.user.id,
+      action: 'PARENT_STUDENT_UNLINK',
+      entity_type: 'parent_student',
+      entity_id: id,
+      details: { parent_id: parentId },
+      ip_address: req.ip
+    });
+
+    sendSuccess(res, {
+      data: null,
+      message: 'Parent unlinked from student successfully.'
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

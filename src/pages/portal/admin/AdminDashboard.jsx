@@ -179,6 +179,14 @@ export default function AdminDashboard() {
                     <p className="action-desc">Lookup active student profiles, update class coordinates, and modify demographic settings.</p>
                   </div>
                 </div>
+
+                <div className="action-card" onClick={() => navigate('/portal/admin/manage')}>
+                  <span className="action-icon">🔗</span>
+                  <div className="action-text">
+                    <h4 className="action-title">Relationship Manager</h4>
+                    <p className="action-desc">Link parents to students, assign class teachers, and build lecture timetable schedules.</p>
+                  </div>
+                </div>
               </div>
             </div>
 
