@@ -1,0 +1,174 @@
+/* ===== Tabs ===== */
+.academics-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: 3rem;
+}
+
+.academics-tab {
+  padding: 0.875rem 1.75rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #888;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.academics-tab:hover {
+  color: var(--color-navy);
+}
+
+.academics-tab--active {
+  color: var(--color-navy);
+  font-weight: 600;
+  border-bottom-color: var(--color-navy);
+}
+
+/* ===== Content ===== */
+.academics-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.academics-header__title {
+  font-size: 1.75rem;
+  color: var(--color-navy);
+}
+
+.academics-header__ages {
+  font-size: 0.875rem;
+  color: #888;
+  font-weight: 500;
+}
+
+.academics-overview {
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.8;
+  max-width: 750px;
+  margin-bottom: 2.5rem;
+}
+
+.academics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.5rem;
+}
+
+.academics-section-title {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-gold-dark);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Subjects list */
+.subjects-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.subject-item {
+  padding: 0.625rem 0;
+  font-size: 0.9375rem;
+  color: var(--color-charcoal);
+  border-bottom: 1px solid var(--color-subtle);
+}
+
+/* Programmes */
+.programmes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.programme-item {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-subtle);
+}
+
+.programme-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.programme-item__title {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: 0.375rem;
+}
+
+.programme-item__description {
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.65;
+}
+
+/* ===== Calendar Table ===== */
+.calendar-table-wrapper {
+  overflow-x: auto;
+}
+
+.calendar-table {
+  width: 100%;
+  max-width: 700px;
+  border-collapse: collapse;
+}
+
+.calendar-table th {
+  text-align: left;
+  padding: 0.875rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.calendar-table td {
+  padding: 1rem;
+  font-size: 0.9375rem;
+  color: var(--color-charcoal);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-table td strong {
+  color: var(--color-navy);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .academics-tabs {
+    overflow-x: auto;
+  }
+
+  .academics-tab {
+    white-space: nowrap;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .academics-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .academics-header {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}

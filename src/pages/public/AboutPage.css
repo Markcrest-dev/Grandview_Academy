@@ -1,0 +1,255 @@
+/* ===== Page Header (shared across pages) ===== */
+.page-header {
+  padding: 4.5rem 0 3.5rem;
+  background-color: var(--color-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.page-header__label {
+  display: inline-block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-gold-dark);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.page-header__title {
+  font-size: 2.75rem;
+  color: var(--color-navy);
+  margin-bottom: 1rem;
+}
+
+.page-header__subtitle {
+  font-size: 1.0625rem;
+  color: #555;
+  max-width: 600px;
+  line-height: 1.7;
+}
+
+/* ===== Mission & Vision ===== */
+.about-mission {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+.about-mission__title {
+  font-size: 1.5rem;
+  color: var(--color-navy);
+  margin-bottom: 1rem;
+}
+
+.about-mission__text {
+  font-size: 1rem;
+  color: #555;
+  line-height: 1.8;
+}
+
+.about-mission__divider {
+  width: 1px;
+  background-color: var(--color-border);
+  align-self: stretch;
+}
+
+/* ===== Principal's Message ===== */
+.principal-message {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 3.5rem;
+  align-items: start;
+}
+
+.principal-message__photo-placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background-color: var(--color-border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.principal-message__quote {
+  font-family: var(--font-heading);
+  font-size: 1.1875rem;
+  font-style: italic;
+  color: #444;
+  line-height: 1.75;
+  margin: 1.5rem 0;
+  padding-left: 1.5rem;
+  border-left: 3px solid var(--color-gold);
+}
+
+.principal-message__name {
+  font-size: 0.9375rem;
+  color: var(--color-navy);
+  margin-bottom: 0.125rem;
+}
+
+.principal-message__role {
+  font-size: 0.8125rem;
+  color: #888;
+}
+
+/* ===== Values Grid ===== */
+.values-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.value-item {
+  padding: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.value-item__number {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  margin-bottom: 0.75rem;
+}
+
+.value-item__title {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: 0.625rem;
+}
+
+.value-item__description {
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.7;
+}
+
+/* ===== Timeline ===== */
+.timeline {
+  max-width: 700px;
+}
+
+.timeline__item {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 2rem;
+  padding-bottom: 2.5rem;
+  border-left: 1px solid var(--color-border);
+  margin-left: 40px;
+  padding-left: 2rem;
+  position: relative;
+}
+
+.timeline__item::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 4px;
+  width: 9px;
+  height: 9px;
+  background-color: var(--color-navy);
+  border-radius: 50%;
+}
+
+.timeline__item:last-child {
+  border-left-color: transparent;
+  padding-bottom: 0;
+}
+
+.timeline__year {
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-gold-dark);
+  position: absolute;
+  left: -60px;
+}
+
+.timeline__title {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: 0.5rem;
+}
+
+.timeline__description {
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.7;
+}
+
+/* ===== Accreditations ===== */
+.accreditations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 700px;
+}
+
+.accreditation-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.accreditation-item strong {
+  font-size: 0.9375rem;
+  color: var(--color-navy);
+}
+
+.accreditation-item span {
+  font-size: 0.875rem;
+  color: #888;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .about-mission {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .about-mission__divider {
+    height: 1px;
+    width: 100%;
+  }
+
+  .principal-message {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .principal-message__photo-placeholder {
+    max-width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    padding: 3.5rem 0 2.5rem;
+  }
+
+  .page-header__title {
+    font-size: 2rem;
+  }
+
+  .values-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline__item {
+    margin-left: 50px;
+    padding-left: 1.5rem;
+  }
+}

@@ -1,0 +1,176 @@
+/* ===== Admission Steps ===== */
+.admission-steps {
+  max-width: 720px;
+}
+
+.admission-step {
+  display: flex;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admission-step:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.admission-step__number {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  flex-shrink: 0;
+  width: 40px;
+}
+
+.admission-step__title {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: 0.5rem;
+}
+
+.admission-step__description {
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.7;
+}
+
+/* ===== Requirements Grid ===== */
+.requirements-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.requirements-card {
+  padding: 2rem;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.requirements-card__title {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--color-gold);
+}
+
+.requirements-card__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.requirements-card__list li {
+  font-size: 0.875rem;
+  color: #555;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.requirements-card__list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--color-gold-dark);
+  font-weight: 700;
+}
+
+/* ===== Deadlines ===== */
+.deadlines-list {
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.deadline-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.deadline-item__intake {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: 0.25rem;
+}
+
+.deadline-item__date {
+  font-size: 0.8125rem;
+  color: #888;
+}
+
+.badge--closed {
+  background-color: #E8E8E8;
+  color: #888;
+}
+
+/* ===== Form ===== */
+.admissions-form-layout {
+  max-width: 700px;
+}
+
+.admissions-form {
+  margin-top: 2rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-success {
+  padding: 2rem;
+  background-color: var(--color-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  margin-top: 2rem;
+}
+
+.form-success h3 {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: 0.5rem;
+}
+
+.form-success p {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .requirements-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .admission-step {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

@@ -1,0 +1,144 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-subtle);
+  padding: 2rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 2.5rem;
+}
+
+/* Brand */
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.login-brand__crest {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-navy);
+  color: var(--color-gold);
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.login-brand__name {
+  font-family: var(--font-heading);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.login-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 1.5rem 0;
+}
+
+.login-title {
+  font-size: 1.375rem;
+  color: var(--color-navy);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.login-description {
+  font-size: 0.8125rem;
+  color: #888;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+}
+
+/* Error */
+.login-error {
+  padding: 0.75rem 1rem;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  color: #991B1B;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+/* Form */
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* Footer */
+.login-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.login-footer__link {
+  font-size: 0.8125rem;
+  color: #888;
+  transition: color 0.2s ease;
+}
+
+.login-footer__link:hover {
+  color: var(--color-navy);
+}
+
+.login-footer__divider {
+  color: #ccc;
+  font-size: 0.75rem;
+}
+
+/* Admin audit notice */
+.login-audit-notice {
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 1.75rem;
+    border: none;
+    border-radius: 0;
+    max-width: none;
+  }
+
+  .login-page {
+    padding: 0;
+    background-color: #ffffff;
+  }
+}
