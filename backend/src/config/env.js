@@ -9,6 +9,7 @@ const required = [
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
+  'JWT_SECRET',
 ];
 
 const optional = {
@@ -48,6 +49,9 @@ const env = {
 
   // Frontend
   frontendUrl: process.env.FRONTEND_URL || optional.FRONTEND_URL,
+
+  // JWT
+  jwtSecret: process.env.JWT_SECRET,
 };
 
 export default env;

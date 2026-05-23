@@ -16,6 +16,7 @@ import LoginPage from '../pages/auth/LoginPage';
 // Utility pages
 import NotFoundPage from '../pages/NotFoundPage';
 import PortalPlaceholder from '../pages/PortalPlaceholder';
+import ProtectedRoute from '../components/auth/ProtectedRoute';
 
 export default function AppRoutes() {
   return (
@@ -33,12 +34,32 @@ export default function AppRoutes() {
       {/* ===== Login Routes ===== */}
       <Route path="/login/:role" element={<LoginPage />} />
 
-      {/* ===== Portal Routes (Placeholders) ===== */}
-      <Route path="/portal/admin/*" element={<PortalPlaceholder portalName="Admin" />} />
-      <Route path="/portal/staff/teaching/*" element={<PortalPlaceholder portalName="Teaching Staff" />} />
-      <Route path="/portal/staff/non-teaching/*" element={<PortalPlaceholder portalName="Non-Teaching Staff" />} />
-      <Route path="/portal/parent/*" element={<PortalPlaceholder portalName="Parent" />} />
-      <Route path="/portal/student/*" element={<PortalPlaceholder portalName="Student" />} />
+      {/* ===== Portal Routes (Protected) ===== */}
+      <Route path="/portal/admin/*" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <PortalPlaceholder portalName="Admin" />
+        </ProtectedRoute>
+      } />
+      <Route path="/portal/staff/teaching/*" element={
+        <ProtectedRoute allowedRoles={['teaching_staff']}>
+          <PortalPlaceholder portalName="Teaching Staff" />
+        </ProtectedRoute>
+      } />
+      <Route path="/portal/staff/non-teaching/*" element={
+        <ProtectedRoute allowedRoles={['non_teaching_staff']}>
+          <PortalPlaceholder portalName="Non-Teaching Staff" />
+        </ProtectedRoute>
+      } />
+      <Route path="/portal/parent/*" element={
+        <ProtectedRoute allowedRoles={['parent']}>
+          <PortalPlaceholder portalName="Parent" />
+        </ProtectedRoute>
+      } />
+      <Route path="/portal/student/*" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <PortalPlaceholder portalName="Student" />
+        </ProtectedRoute>
+      } />
 
       {/* ===== 404 ===== */}
       <Route path="*" element={<NotFoundPage />} />

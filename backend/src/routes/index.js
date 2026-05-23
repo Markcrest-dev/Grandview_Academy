@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import authRouter from './auth.js';
 import healthRouter from './health.js';
 import usersRouter from './users.js';
 import studentsRouter from './students.js';
@@ -15,6 +16,7 @@ import uploadsRouter from './uploads.js';
 const router = Router();
 
 // Mount API routes
+router.use('/auth', authRouter);
 router.use('/health', healthRouter);
 router.use('/users', usersRouter);
 router.use('/students', studentsRouter);
