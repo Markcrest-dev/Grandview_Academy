@@ -301,8 +301,14 @@ export default function StudentPortalDashboard() {
                   <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
                     <div className="large-avatar" style={{ margin: '0', width: '80px', height: '80px', fontSize: '2rem', flexShrink: 0 }}>
                       {(() => {
-                        const seed = encodeURIComponent(profileData.users?.email || profileData.admission_number || 'student');
-                        const imgUrl = profileData.photo_url || `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=brown,darkBrown,black`;
+                        const imgUrl = profileData.photo_url || (() => {
+                          const email = profileData.users?.email || '';
+                          let hash = 0;
+                          for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+                          const idx = Math.abs(hash) % 90;
+                          const g = (Math.abs(hash) % 2 === 0) ? 'men' : 'women';
+                          return `https://randomuser.me/api/portraits/${g}/${idx}.jpg`;
+                        })();
                         return <img src={imgUrl} alt={profileData.first_name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />;
                       })()}
                     </div>

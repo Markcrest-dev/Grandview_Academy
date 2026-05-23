@@ -266,8 +266,14 @@ export default function StudentDirectory() {
                 <div className="panel-avatar-block">
                   <div className="large-avatar">
                     {(() => {
-                      const seed = encodeURIComponent(selectedStudent.users?.email || selectedStudent.admission_number || 'student');
-                      const imgUrl = selectedStudent.photo_url || `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=brown,darkBrown,black`;
+                      const imgUrl = selectedStudent.photo_url || (() => {
+                        const email = selectedStudent.users?.email || selectedStudent.admission_number || '';
+                        let hash = 0;
+                        for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+                        const idx = Math.abs(hash) % 90;
+                        const g = (Math.abs(hash) % 2 === 0) ? 'men' : 'women';
+                        return `https://randomuser.me/api/portraits/${g}/${idx}.jpg`;
+                      })();
                       return <img src={imgUrl} alt={selectedStudent.first_name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />;
                     })()}
                   </div>

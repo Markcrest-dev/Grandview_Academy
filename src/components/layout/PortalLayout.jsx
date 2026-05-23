@@ -35,12 +35,18 @@ export default function PortalLayout({ children }) {
     navigate('/');
   };
 
-  // Generate deterministic black character avatar based on email
+  // Generate deterministic real person image based on email if photoUrl is missing
   const getProfileImage = (profile, email) => {
     if (profile.photoUrl) return profile.photoUrl;
     if (profile.photo_url) return profile.photo_url;
-    const seed = encodeURIComponent(email || 'default');
-    return `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=brown,darkBrown,black`;
+    if (!email) return null;
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) {
+      hash = email.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % 90;
+    const gender = (Math.abs(hash) % 2 === 0) ? 'men' : 'women';
+    return `https://randomuser.me/api/portraits/${gender}/${index}.jpg`;
   };
 
   const displayPhotoUrl = getProfileImage(profile, userEmail);
