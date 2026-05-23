@@ -1,65 +1,171 @@
 import { Router } from 'express';
+import { supabaseAdmin } from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { parsePagination, validateRequired, isEnum } from '../utils/validators.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
-
 const VALID_ASSESSMENT_TYPES = ['ca1', 'ca2', 'ca3', 'exam', 'project', 'practical'];
 
 /**
  * GET /api/grades
  * List grades with filters: student_id, subject_id, class_id, term_id.
  */
-router.get('/', (req, res) => {
-  const { page, limit } = parsePagination(req.query);
+router.get('/', requireAuth, async (req, res, next) => {
+  try {
+    const { student_id, subject_id, class_id, term_id } = req.query;
+    const { page, limit, offset } = parsePagination(req.query);
 
-  sendSuccess(res, {
-    data: [],
-    message: 'Grade listing — not yet implemented',
-    pagination: { page, limit, total: 0 },
-  });
+    let query = supabaseAdmin
+      .from('grades')
+      .select('*, students(id, first_name, last_name, admission_number), subjects(id, name, code)', { count: 'exact' });
+
+    if (student_id) query = query.eq('student_id', student_id);
+    if (subject_id) query = query.eq('subject_id', subject_id);
+    if (class_id) query = query.eq('class_id', class_id);
+    if (term_id) query = query.eq('term_id', term_id);
+
+    const { data: grades, error, count } = await query
+      .range(offset, offset + limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return sendError(res, { message: `Failed to fetch grades: ${error.message}`, statusCode: 500 });
+    }
+
+    sendSuccess(res, {
+      data: grades,
+      message: 'Grades fetched successfully.',
+      pagination: { page, limit, total: count || 0 },
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/grades/student/:id
- * Get all grades for a specific student.
+ * Get all grades for a specific student, compiled for report card presentation.
  */
-router.get('/student/:id', (req, res) => {
-  const { page, limit } = parsePagination(req.query);
+router.get('/student/:id', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
 
-  sendSuccess(res, {
-    data: [],
-    message: `Grades for student ${req.params.id} — not yet implemented`,
-    pagination: { page, limit, total: 0 },
-  });
+    const { data: grades, error } = await supabaseAdmin
+      .from('grades')
+      .select('*, subjects(name, code, level), classes(name), terms(name, academic_year_id)')
+      .eq('student_id', id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return sendError(res, { message: `Failed to fetch student report: ${error.message}`, statusCode: 500 });
+    }
+
+    sendSuccess(res, {
+      data: grades,
+      message: 'Student grades report fetched successfully.'
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * POST /api/grades
  * Enter grades for students.
- * Body: { subject_id, class_id, term_id, assessment_type, entries: [{ student_id, score, max_score }] }
+ * Body: { subject_id, class_id, term_id, assessment_type, entries: [{ student_id, score, max_score, remarks }] }
  */
-router.post('/', (req, res) => {
-  const errors = validateRequired(req.body, ['subject_id', 'class_id', 'term_id', 'assessment_type']);
-  if (errors) {
-    return sendError(res, { message: 'Validation failed', errors });
-  }
+router.post('/', requireAuth, async (req, res, next) => {
+  try {
+    const errors = validateRequired(req.body, ['subject_id', 'class_id', 'term_id', 'assessment_type']);
+    if (errors) {
+      return sendError(res, { message: 'Validation failed', errors, statusCode: 400 });
+    }
 
-  if (!isEnum(req.body.assessment_type, VALID_ASSESSMENT_TYPES)) {
-    return sendError(res, {
-      message: `Invalid assessment_type. Must be one of: ${VALID_ASSESSMENT_TYPES.join(', ')}`,
+    const { subject_id, class_id, term_id, assessment_type, entries } = req.body;
+
+    if (!isEnum(assessment_type, VALID_ASSESSMENT_TYPES)) {
+      return sendError(res, {
+        message: `Invalid assessment_type. Must be one of: ${VALID_ASSESSMENT_TYPES.join(', ')}`,
+        statusCode: 400
+      });
+    }
+
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return sendError(res, { message: 'entries must be a non-empty array of { student_id, score, max_score }', statusCode: 400 });
+    }
+
+    // Validate grades range check score >= 0 and score <= max_score
+    for (const entry of entries) {
+      const maxScore = entry.max_score ?? 100.00;
+      if (entry.score < 0 || entry.score > maxScore) {
+        return sendError(res, {
+          message: `Validation failed: Score ${entry.score} is out of bounds for max score ${maxScore}`,
+          statusCode: 400
+        });
+      }
+    }
+
+    // 1. Resolve staff profile of logged-in user
+    let staffId = null;
+    if (req.user.role === 'teaching_staff' || req.user.role === 'non_teaching_staff') {
+      const { data: staff } = await supabaseAdmin
+        .from('staff')
+        .select('id')
+        .eq('user_id', req.user.id)
+        .maybeSingle();
+      if (staff) {
+        staffId = staff.id;
+      }
+    }
+
+    // 2. Safely clear any duplicate records matching context to prevent duplicate entry
+    const studentIds = entries.map(e => e.student_id);
+    const { error: delError } = await supabaseAdmin
+      .from('grades')
+      .delete()
+      .eq('subject_id', subject_id)
+      .eq('class_id', class_id)
+      .eq('term_id', term_id)
+      .eq('assessment_type', assessment_type)
+      .in('student_id', studentIds);
+
+    if (delError) {
+      return sendError(res, { message: `Failed to clear existing grades: ${delError.message}`, statusCode: 500 });
+    }
+
+    // 3. Build rows for bulk insertion
+    const rows = entries.map(entry => ({
+      student_id: entry.student_id,
+      subject_id,
+      class_id,
+      term_id,
+      assessment_type,
+      score: entry.score,
+      max_score: entry.max_score ?? 100.00,
+      remarks: entry.remarks || null,
+      entered_by: staffId
+    }));
+
+    // 4. Batch insert
+    const { data: inserted, error: insError } = await supabaseAdmin
+      .from('grades')
+      .insert(rows)
+      .select();
+
+    if (insError) {
+      return sendError(res, { message: `Failed to save grades: ${insError.message}`, statusCode: 500 });
+    }
+
+    sendSuccess(res, {
+      data: { recorded: inserted.length },
+      message: 'Grades recorded successfully.',
+      statusCode: 201
     });
+  } catch (err) {
+    next(err);
   }
-
-  if (!Array.isArray(req.body.entries) || req.body.entries.length === 0) {
-    return sendError(res, { message: 'entries must be a non-empty array of { student_id, score, max_score }' });
-  }
-
-  sendSuccess(res, {
-    data: { recorded: req.body.entries.length },
-    message: 'Grade entry — not yet implemented',
-    statusCode: 201,
-  });
 });
 
 export default router;
+
