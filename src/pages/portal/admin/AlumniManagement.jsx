@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader from '../../../components/portal/PageHeader';
-import LoadingSpinner from '../../../components/ui/LoadingSpinner';
 
 export default function AlumniManagement() {
   const [applications, setApplications] = useState([]);
@@ -107,7 +106,9 @@ export default function AlumniManagement() {
         </div>
 
         {isLoading ? (
-          <LoadingSpinner />
+          <div className="empty-state">
+            <p className="empty-state__message">Loading applications...</p>
+          </div>
         ) : applications.length === 0 ? (
           <div className="empty-state">
             <p className="empty-state__message">No {activeTab} applications found.</p>
