@@ -4,6 +4,7 @@ import PortalLayout from '../../../components/layout/PortalLayout';
 import { useAuth } from '../../../context/AuthContext';
 import MessagingInterface from '../../../components/ui/MessagingInterface';
 import { exportToCSV } from '../../../utils/exportUtils';
+import AtRiskRadar from './AtRiskRadar';
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
@@ -778,8 +779,10 @@ export default function TeacherDashboard() {
             )}
 
             {!loadingData && activeTab === 'analytics' && (
-              <div className="dash-pane">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <>
+                <AtRiskRadar />
+                <div className="dash-pane" style={{ marginTop: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <div>
                     <h3 className="dash-pane__title" style={{ margin: 0 }}>Class Performance Report</h3>
                     <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Aggregated grading overview for {assignedClass.name}.</p>
@@ -860,6 +863,7 @@ export default function TeacherDashboard() {
                   </div>
                 )}
               </div>
+              </>
             )}
 
             {!loadingData && activeTab === 'timetable' && (

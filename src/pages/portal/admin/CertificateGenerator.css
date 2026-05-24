@@ -1,0 +1,150 @@
+/* Default hidden for print-only element */
+.print-only {
+  display: none;
+}
+
+/* Certificate Styles */
+.print-certificate {
+  width: 1056px; /* 11 inches at 96 DPI (landscape) */
+  height: 816px; /* 8.5 inches at 96 DPI (landscape) */
+  background-color: #ffffff;
+  padding: 40px;
+  box-sizing: border-box;
+  font-family: 'Georgia', serif;
+  color: #1e293b;
+}
+
+.cert-border-outer {
+  border: 12px solid #C9A84C;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.cert-border-inner {
+  border: 2px solid #1b2a4a;
+  height: 100%;
+  padding: 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+}
+
+.cert-school-name {
+  font-size: 3rem;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  color: #1b2a4a;
+  margin: 0 0 10px 0;
+}
+
+.cert-motto {
+  font-size: 1.25rem;
+  font-style: italic;
+  color: #C9A84C;
+  margin: 0;
+}
+
+.cert-title {
+  font-size: 4rem;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  color: #C9A84C;
+  margin: 40px 0;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 20px;
+  display: inline-block;
+}
+
+.cert-subtitle {
+  font-size: 1.5rem;
+  margin: 0 0 20px 0;
+  color: #475569;
+}
+
+.cert-student-name {
+  font-size: 4.5rem;
+  font-weight: bold;
+  font-family: 'Great Vibes', 'Brush Script MT', cursive;
+  margin: 0 0 30px 0;
+  color: #1b2a4a;
+}
+
+.cert-description {
+  font-size: 1.25rem;
+  line-height: 1.8;
+  max-width: 800px;
+  margin: 0 auto;
+  color: #334155;
+}
+
+.cert-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 40px;
+}
+
+.cert-signature {
+  width: 250px;
+}
+
+.sig-line {
+  border-bottom: 1px solid #1e293b;
+  margin-bottom: 10px;
+}
+
+.cert-seal {
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, #facc15 0%, #a16207 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px dashed #fef08a;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.seal-badge {
+  font-size: 1.5rem;
+  color: white;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+/* Print Media Query */
+@media print {
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+  
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-only, .print-only * {
+    visibility: visible;
+  }
+  
+  .print-only {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .print-certificate {
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+  }
+}

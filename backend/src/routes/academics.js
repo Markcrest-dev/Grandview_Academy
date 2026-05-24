@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
+import { supabaseAdmin } from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireRoles } from '../middleware/auth.js';
 
 const router = Router();
 const DB_PATH = path.resolve(process.cwd(), 'src/data/course_registration.json');
@@ -86,6 +87,80 @@ router.post('/registration', requireAuth, (req, res) => {
     });
   } catch (err) {
     sendError(res, { message: err.message, statusCode: 500 });
+  }
+});
+
+/**
+ * GET /api/academics/at-risk
+ * AI Performance Prediction logic (At-Risk Flagging)
+ * Scans student grades and attendance to identify struggling students
+ */
+router.get('/at-risk', requireRoles('admin', 'teaching_staff'), async (req, res, next) => {
+  try {
+    // 1. Fetch active students with their class info
+    const { data: students, error: studentErr } = await supabaseAdmin
+      .from('students')
+      .select('id, first_name, last_name, admission_number, classes(name)')
+      .eq('status', 'active');
+      
+    if (studentErr) throw studentErr;
+
+    // 2. Fetch all grades to calculate averages
+    const { data: grades, error: gradeErr } = await supabaseAdmin
+      .from('grades')
+      .select('student_id, score');
+      
+    if (gradeErr) throw gradeErr;
+
+    // 3. Fetch attendance
+    const { data: attendance, error: attErr } = await supabaseAdmin
+      .from('attendance')
+      .select('student_id, status');
+      
+    if (attErr) throw attErr;
+
+    const atRiskStudents = [];
+
+    // Process each student
+    for (const student of students) {
+      // Calculate Grade Average
+      const studentGrades = grades.filter(g => g.student_id === student.id);
+      let avgScore = 100; // default to good if no grades yet
+      if (studentGrades.length > 0) {
+        const totalScore = studentGrades.reduce((sum, g) => sum + Number(g.score), 0);
+        avgScore = totalScore / studentGrades.length;
+      }
+
+      // Calculate Attendance Rate
+      const studentAtt = attendance.filter(a => a.student_id === student.id);
+      let attendanceRate = 100;
+      if (studentAtt.length > 0) {
+        const presentCount = studentAtt.filter(a => a.status === 'present' || a.status === 'late').length;
+        attendanceRate = (presentCount / studentAtt.length) * 100;
+      }
+
+      // Flagging Logic (AI Model placeholder heuristics)
+      // At-risk if Average Score < 50 OR Attendance Rate < 75%
+      const isAtRisk = avgScore < 50 || attendanceRate < 75;
+
+      if (isAtRisk) {
+        let riskFactors = [];
+        if (avgScore < 50) riskFactors.push(`Low Grades (${avgScore.toFixed(1)}%)`);
+        if (attendanceRate < 75) riskFactors.push(`Poor Attendance (${attendanceRate.toFixed(1)}%)`);
+
+        atRiskStudents.push({
+          ...student,
+          avg_score: avgScore,
+          attendance_rate: attendanceRate,
+          risk_factors: riskFactors,
+          risk_level: avgScore < 40 || attendanceRate < 60 ? 'High' : 'Moderate'
+        });
+      }
+    }
+
+    sendSuccess(res, { data: atRiskStudents });
+  } catch (err) {
+    next(err);
   }
 });
 

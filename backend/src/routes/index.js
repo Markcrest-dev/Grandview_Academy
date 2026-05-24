@@ -25,6 +25,7 @@ import visitorsRouter from './visitors.js';
 import transportRouter from './transport.js';
 import hostelsRouter from './hostels.js';
 import payrollRouter from './payroll.js';
+import elearningRouter from './elearning.js';
 
 const router = Router();
 
@@ -55,6 +56,7 @@ router.use('/visitors', visitorsRouter);
 router.use('/transport', transportRouter);
 router.use('/hostels', hostelsRouter);
 router.use('/payroll', payrollRouter);
+router.use('/elearning', elearningRouter);
 
 export default router;
 

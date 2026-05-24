@@ -5,6 +5,7 @@ import PortalLayout from '../../../components/layout/PortalLayout';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { exportToCSV } from '../../../utils/exportUtils';
 import BroadcastPanel from '../../../components/ui/BroadcastPanel';
+import AtRiskRadar from '../staff/AtRiskRadar';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
@@ -185,6 +186,11 @@ export default function AdminDashboard() {
               </ResponsiveContainer>
             </div>
           </div>
+        </section>
+
+        {/* AI Performance Prediction Radar */}
+        <section style={{ marginBottom: '1.5rem' }}>
+          <AtRiskRadar />
         </section>
 
         {/* Main Grid: Pipeline Log & Action Center */}

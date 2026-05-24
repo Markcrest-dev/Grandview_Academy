@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import FloatingWhatsAppButton from '../ui/FloatingWhatsAppButton';
+import ChatbotWidget from '../ui/ChatbotWidget';
 
 export default function PageWrapper({ title, description, children }) {
   const { pathname } = useLocation();
@@ -28,6 +29,7 @@ export default function PageWrapper({ title, description, children }) {
       <main style={{ paddingTop: '72px', minHeight: '100vh' }}>
         {children}
       </main>
+      <ChatbotWidget />
       <FloatingWhatsAppButton />
       <Footer />
     </>

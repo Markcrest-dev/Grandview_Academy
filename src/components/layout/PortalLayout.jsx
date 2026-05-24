@@ -64,14 +64,17 @@ export default function PortalLayout({ children }) {
           { path: '/portal/admin/visitors', label: 'Visitor Log', icon: '🛡️' },
           { path: '/portal/admin/transport', label: 'Transport', icon: '🚌' },
           { path: '/portal/admin/hostels', label: 'Hostels', icon: '🏨' },
+          { path: '/portal/admin/certificates', label: 'Certificates', icon: '🎓' },
         ];
       case 'teaching_staff':
         return [
           { path: '/portal/staff/teaching', label: 'My Classroom', icon: '🏫' },
+          { path: '/portal/staff/teaching/elearning', label: 'E-Learning', icon: '📚' },
         ];
       case 'student':
         return [
           { path: '/portal/student', label: 'My Dashboard', icon: '🎒' },
+          { path: '/portal/student/elearning', label: 'E-Learning', icon: '💻' },
         ];
       case 'parent':
         return [

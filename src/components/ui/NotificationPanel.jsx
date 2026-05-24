@@ -18,6 +18,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [permission, setPermission] = useState('default');
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
@@ -38,8 +39,24 @@ export default function NotificationPanel({ isOpen, onClose }) {
     if (isOpen) {
       setLoading(true);
       fetchNotifications();
+      if ('Notification' in window) {
+        setPermission(Notification.permission);
+      }
     }
   }, [isOpen, fetchNotifications]);
+
+  const requestPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('This browser does not support desktop notification');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    setPermission(perm);
+    if (perm === 'granted') {
+      // In a real app, we would subscribe to the PushManager here and send the endpoint to the backend
+      new Notification('Grandview Academy', { body: 'Push notifications enabled successfully!' });
+    }
+  };
 
   const markAsRead = async (id) => {
     try {
@@ -80,6 +97,13 @@ export default function NotificationPanel({ isOpen, onClose }) {
         </div>
 
         <div className="notif-panel__body">
+          {permission === 'default' && (
+            <div style={{ padding: '1rem', backgroundColor: '#e0f2fe', borderBottom: '1px solid #bae6fd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', color: '#0369a1' }}>Enable desktop notifications to stay updated.</span>
+              <button onClick={requestPermission} style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', backgroundColor: '#0284c7', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Enable</button>
+            </div>
+          )}
+
           {loading ? (
             <div className="notif-loading">Loading notifications...</div>
           ) : notifications.length === 0 ? (
