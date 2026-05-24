@@ -104,6 +104,9 @@ export default function PortalLayout({ children }) {
   };
 
   const navLinks = getNavLinks();
+  
+  // Add shared routes for all roles
+  navLinks.push({ path: '/portal/shared/security', label: 'Security Settings', icon: '🔒' });
 
   return (
     <div className="portal-frame">

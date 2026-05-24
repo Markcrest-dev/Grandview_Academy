@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
@@ -203,8 +204,9 @@ router.post('/login', async (req, res, next) => {
     }
 
     // Standard session token signing
+    const jti = crypto.randomUUID();
     const token = jwt.sign(
-      { id: userRecord.id, email: userRecord.email, role: userRecord.role },
+      { id: userRecord.id, email: userRecord.email, role: userRecord.role, jti },
       env.jwtSecret,
       { expiresIn: '24h' }
     );
@@ -217,6 +219,17 @@ router.post('/login', async (req, res, next) => {
       entity_id: userRecord.id,
       ip_address: req.ip,
       details: { role, user_agent: req.get('user-agent') }
+    });
+
+    // Save user session
+    await supabaseAdmin.from('user_sessions').insert({
+      user_id: userRecord.id,
+      token_id: jti,
+      ip_address: req.ip,
+      user_agent: req.get('user-agent'),
+      device_info: req.get('user-agent'), // Can be parsed further if needed
+      is_active: true,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     });
 
     sendSuccess(res, {
@@ -284,8 +297,9 @@ router.post('/verify-2fa', async (req, res, next) => {
     }
 
     // Issue standard full JWT
+    const jti = crypto.randomUUID();
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, jti },
       env.jwtSecret,
       { expiresIn: '24h' }
     );
@@ -297,7 +311,18 @@ router.post('/verify-2fa', async (req, res, next) => {
       entity_type: 'user',
       entity_id: user.id,
       ip_address: req.ip,
-      details: { verified: true }
+      details: { verified: true, user_agent: req.get('user-agent') }
+    });
+
+    // Save user session
+    await supabaseAdmin.from('user_sessions').insert({
+      user_id: user.id,
+      token_id: jti,
+      ip_address: req.ip,
+      user_agent: req.get('user-agent'),
+      device_info: req.get('user-agent'),
+      is_active: true,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     });
 
     sendSuccess(res, {
@@ -578,6 +603,82 @@ router.get('/me', requireAuth, async (req, res, next) => {
         profile: profileData,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/auth/sessions
+ * Get active sessions for the current user
+ */
+router.get('/sessions', requireAuth, async (req, res, next) => {
+  try {
+    const { data: sessions, error } = await supabaseAdmin
+      .from('user_sessions')
+      .select('id, token_id, ip_address, user_agent, device_info, is_active, created_at, last_active_at, expires_at')
+      .eq('user_id', req.user.id)
+      .eq('is_active', true)
+      .order('last_active_at', { ascending: false });
+
+    if (error) {
+      return sendError(res, { message: 'Failed to fetch sessions.', statusCode: 500 });
+    }
+
+    sendSuccess(res, { data: sessions });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/auth/sessions/:token_id
+ * Revoke a specific session
+ */
+router.delete('/sessions/:token_id', requireAuth, async (req, res, next) => {
+  try {
+    const { token_id } = req.params;
+    
+    const { error } = await supabaseAdmin
+      .from('user_sessions')
+      .update({ is_active: false })
+      .eq('token_id', token_id)
+      .eq('user_id', req.user.id);
+
+    if (error) {
+      return sendError(res, { message: 'Failed to revoke session.', statusCode: 500 });
+    }
+
+    sendSuccess(res, { message: 'Session revoked successfully.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/auth/audit-logs
+ * Get login activity and other audit logs
+ */
+router.get('/audit-logs', requireAuth, async (req, res, next) => {
+  try {
+    let query = supabaseAdmin
+      .from('audit_logs')
+      .select('id, action, ip_address, details, created_at, users(email, role)')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    // If not admin, only show their own logs
+    if (req.user.role !== 'admin') {
+      query = query.eq('user_id', req.user.id);
+    }
+
+    const { data: logs, error } = await query;
+
+    if (error) {
+      return sendError(res, { message: 'Failed to fetch audit logs.', statusCode: 500 });
+    }
+
+    sendSuccess(res, { data: logs });
   } catch (err) {
     next(err);
   }

@@ -66,6 +66,29 @@ export async function requireAuth(req, res, next) {
       });
     }
 
+    // Check if session is active (if jti is present)
+    if (decoded.jti) {
+      const { data: session } = await supabaseAdmin
+        .from('user_sessions')
+        .select('is_active')
+        .eq('token_id', decoded.jti)
+        .maybeSingle();
+
+      if (session && !session.is_active) {
+        return sendError(res, {
+          message: 'Your session has been revoked. Please log in again.',
+          statusCode: 401,
+        });
+      }
+      
+      // Update last active asynchronously (fire and forget to not block request)
+      supabaseAdmin
+        .from('user_sessions')
+        .update({ last_active_at: new Date().toISOString() })
+        .eq('token_id', decoded.jti)
+        .then(() => {});
+    }
+
     if (!user.is_active) {
       return sendError(res, {
         message: 'This account has been deactivated. Please contact administration.',

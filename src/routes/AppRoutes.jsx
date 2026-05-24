@@ -29,6 +29,7 @@ import NonTeachingRouter from '../pages/portal/staff/non-teaching/NonTeachingRou
 // Shared portal pages
 import MessagingPage from '../pages/portal/shared/MessagingPage';
 import ReceiptPage from '../pages/portal/shared/ReceiptPage';
+import SecuritySettings from '../pages/portal/shared/SecuritySettings';
 
 // Utility pages
 import NotFoundPage from '../pages/NotFoundPage';
@@ -107,6 +108,12 @@ export default function AppRoutes() {
       <Route path="/portal/receipt/:paymentId" element={
         <ProtectedRoute allowedRoles={['admin', 'parent', 'non_teaching_staff']}>
           <ReceiptPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/portal/shared/security" element={
+        <ProtectedRoute allowedRoles={['admin', 'teaching_staff', 'non_teaching_staff', 'parent', 'student']}>
+          <SecuritySettings />
         </ProtectedRoute>
       } />
 
