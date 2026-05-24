@@ -197,24 +197,24 @@ Update this table as features are built and deployed.
 | Course Registration | Academic | 🟡 Medium | ✅ Built |
 | Scholarship Management | Finance | 🟡 Medium | ✅ Built |
 | Parent-Teacher Meeting Scheduler | Communication | 🟡 Medium | ✅ Built |
-| Progressive Web App | Mobile | 🟢 Low | ⬜ Not Started |
-| Alumni Portal | Website | 🟢 Low | ⬜ Not Started |
-| Virtual School Tour | Website | 🟢 Low | ⬜ Not Started |
-| AI Performance Prediction | Advanced | 🟢 Low | ⬜ Not Started |
-| E-Learning Module | Advanced | 🟢 Low | ⬜ Not Started |
-| Digital Certificate Generator | Advanced | 🟢 Low | ⬜ Not Started |
-| Mobile App | Mobile | 🟢 Low | ⬜ Not Started |
-| Chatbot Assistant | Advanced | 🟢 Low | ⬜ Not Started |
-| Payroll System | Finance | 🟢 Low | ⬜ Not Started |
-| Hostel / Boarding Management | Operations | 🟢 Low | ⬜ Not Started |
-| Login Activity Monitor | Security | 🟢 Low | ⬜ Not Started |
-| Device Management | Security | 🟢 Low | ⬜ Not Started |
-| Automatic Data Backup | Security | 🟢 Low | ⬜ Not Started |
-| Live Chat / WhatsApp Button | Website | 🟢 Low | ⬜ Not Started |
-| Multi-language Support | Website | 🟢 Low | ⬜ Not Started |
-| Transport Management | Operations | 🟢 Low | ⬜ Not Started |
-| Visitor Log | Operations | 🟢 Low | ⬜ Not Started |
-| Push Notifications | Mobile | 🟢 Low | ⬜ Not Started |
+| Progressive Web App | Mobile | 🟢 Low | ✅ Built |
+| Alumni Portal | Website | 🟢 Low | ✅ Built |
+| Virtual School Tour | Website | 🟢 Low | ✅ Built |
+| AI Performance Prediction | Advanced | 🟢 Low | ✅ Built |
+| E-Learning Module | Advanced | 🟢 Low | ✅ Built |
+| Digital Certificate Generator | Advanced | 🟢 Low | ✅ Built |
+| Mobile App | Mobile | 🟢 Low | ✅ Built |
+| Chatbot Assistant | Advanced | 🟢 Low | ✅ Built |
+| Payroll System | Finance | 🟢 Low | ✅ Built |
+| Hostel / Boarding Management | Operations | 🟢 Low | ✅ Built |
+| Login Activity Monitor | Security | 🟢 Low | ✅ Built |
+| Device Management | Security | 🟢 Low | ✅ Built |
+| Automatic Data Backup | Security | 🟢 Low | ✅ Built |
+| Live Chat / WhatsApp Button | Website | 🟢 Low | ✅ Built |
+| Multi-language Support | Website | 🟢 Low | ✅ Built |
+| Transport Management | Operations | 🟢 Low | ✅ Built |
+| Visitor Log | Operations | 🟢 Low | ✅ Built |
+| Push Notifications | Mobile | 🟢 Low | ✅ Built |
 
 ---
 
