@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiUrl } from '../../../../utils/api';
+import PayrollManager from './PayrollManager';
 
 export default function BursarDashboard() {
   const [structures, setStructures] = useState([]);
@@ -283,6 +284,21 @@ export default function BursarDashboard() {
             >
               Award Scholarship
             </button>
+            <button
+              onClick={() => setActiveFormTab('payroll')}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0.75rem 1rem',
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                color: activeFormTab === 'payroll' ? 'var(--color-navy, #1b2a4a)' : '#94a3b8',
+                borderBottom: activeFormTab === 'payroll' ? '2.5px solid var(--color-gold, #C9A84C)' : 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Staff Payroll
+            </button>
           </div>
 
           {activeFormTab === 'payment' ? (
@@ -427,7 +443,7 @@ export default function BursarDashboard() {
                 {submitting ? 'Creating Rate...' : 'Publish Fee Structure Item 📝'}
               </button>
             </form>
-          ) : (
+          ) : activeFormTab === 'scholarship' ? (
             /* AWARD SCHOLARSHIP FORM */
             <form onSubmit={handleScholarshipSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="form-group">
@@ -489,7 +505,9 @@ export default function BursarDashboard() {
                 {submitting ? 'Awarding...' : 'Award Scholarship 🎓'}
               </button>
             </form>
-          )}
+          ) : activeFormTab === 'payroll' ? (
+            <PayrollManager />
+          ) : null}
         </div>
 
         {/* Ledger & Transactions log list */}

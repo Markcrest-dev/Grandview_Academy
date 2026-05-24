@@ -21,6 +21,10 @@ import notificationsRouter from './notifications.js';
 import assignmentsRouter from './assignments.js';
 import messagingRouter from './messaging.js';
 import academicsRouter from './academics.js';
+import visitorsRouter from './visitors.js';
+import transportRouter from './transport.js';
+import hostelsRouter from './hostels.js';
+import payrollRouter from './payroll.js';
 
 const router = Router();
 
@@ -47,6 +51,10 @@ router.use('/notifications', notificationsRouter);
 router.use('/assignments', assignmentsRouter);
 router.use('/messages', messagingRouter);
 router.use('/academics', academicsRouter);
+router.use('/visitors', visitorsRouter);
+router.use('/transport', transportRouter);
+router.use('/hostels', hostelsRouter);
+router.use('/payroll', payrollRouter);
 
 export default router;
 

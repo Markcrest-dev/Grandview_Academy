@@ -21,6 +21,9 @@ import AdmissionsPipeline from '../pages/portal/admin/AdmissionsPipeline';
 import StudentDirectory from '../pages/portal/admin/StudentDirectory';
 import RelationshipManager from '../pages/portal/admin/RelationshipManager';
 import TranscriptView from '../pages/portal/admin/TranscriptView';
+import VisitorLog from '../pages/portal/admin/VisitorLog';
+import TransportManager from '../pages/portal/admin/TransportManager';
+import HostelManager from '../pages/portal/admin/HostelManager';
 import TeacherDashboard from '../pages/portal/staff/TeacherDashboard';
 import StudentPortalDashboard from '../pages/portal/student/StudentPortalDashboard';
 import ParentPortalDashboard from '../pages/portal/parent/ParentPortalDashboard';
@@ -62,6 +65,9 @@ export default function AppRoutes() {
             <Route path="/admissions" element={<AdmissionsPipeline />} />
             <Route path="/students" element={<StudentDirectory />} />
             <Route path="/manage" element={<RelationshipManager />} />
+            <Route path="/visitors" element={<VisitorLog />} />
+            <Route path="/transport" element={<TransportManager />} />
+            <Route path="/hostels" element={<HostelManager />} />
             <Route path="/transcript/:studentId" element={<TranscriptView />} />
             <Route path="/messages" element={<MessagingPage />} />
           </Routes>

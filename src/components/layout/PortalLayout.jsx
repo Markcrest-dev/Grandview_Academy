@@ -61,6 +61,9 @@ export default function PortalLayout({ children }) {
           { path: '/portal/admin', label: 'Overview', icon: '📊' },
           { path: '/portal/admin/admissions', label: 'Admissions Board', icon: '📝' },
           { path: '/portal/admin/students', label: 'Student Directory', icon: '🎒' },
+          { path: '/portal/admin/visitors', label: 'Visitor Log', icon: '🛡️' },
+          { path: '/portal/admin/transport', label: 'Transport', icon: '🚌' },
+          { path: '/portal/admin/hostels', label: 'Hostels', icon: '🏨' },
         ];
       case 'teaching_staff':
         return [
