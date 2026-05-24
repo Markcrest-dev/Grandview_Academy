@@ -3,14 +3,18 @@ import { apiUrl } from '../../../utils/api';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import { useAuth } from '../../../context/AuthContext';
 import MessagingInterface from '../../../components/ui/MessagingInterface';
+import { exportToCSV } from '../../../utils/exportUtils';
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('roster'); // roster, attendance, grades, timetable
+  const [activeTab, setActiveTab] = useState('roster'); // roster, attendance, grades, timetable, analytics
   const [assignedClass, setAssignedClass] = useState(null);
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [terms, setTerms] = useState([]);
+  
+  // Analytics state
+  const [performanceData, setPerformanceData] = useState([]);
   
   // Timetable state
   const [timetableSlots, setTimetableSlots] = useState([]);
@@ -240,6 +244,27 @@ export default function TeacherDashboard() {
     loadAnnouncements();
   }, [activeTab]);
 
+  // 7. Pre-fetch analytics
+  useEffect(() => {
+    async function loadAnalytics() {
+      if (activeTab !== 'analytics' || !assignedClass) return;
+      setLoadingData(true);
+      try {
+        const url = apiUrl(`/api/grades/performance?class_id=${assignedClass.id}${selectedTermId ? `&term_id=${selectedTermId}` : ''}`);
+        const res = await fetch(url, { headers: authHeaders });
+        const resData = await res.json();
+        if (resData.success) {
+          setPerformanceData(resData.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+    loadAnalytics();
+  }, [activeTab, assignedClass, selectedTermId]);
+
   // Save attendance
   const handleSaveAttendance = async () => {
     setAttendanceSaving(true);
@@ -453,6 +478,7 @@ export default function TeacherDashboard() {
                 { id: 'roster', label: 'My Class Roster', icon: '🎒' },
                 { id: 'attendance', label: 'Daily Attendance', icon: '📅' },
                 { id: 'grades', label: 'Scoring Gradebook', icon: '📝' },
+                { id: 'analytics', label: 'Performance Analytics', icon: '📊' },
                 { id: 'timetable', label: 'Form Timetable', icon: '🏫' },
                 { id: 'assignments', label: 'Assignments', icon: '📚' },
                 { id: 'alerts', label: 'Announcements 📢', icon: '' },
@@ -724,6 +750,91 @@ export default function TeacherDashboard() {
                     {gradesSaving ? 'Recording Scores...' : 'Save Gradebook Scores ✓'}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {!loadingData && activeTab === 'analytics' && (
+              <div className="dash-pane">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <h3 className="dash-pane__title" style={{ margin: 0 }}>Class Performance Report</h3>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Aggregated grading overview for {assignedClass.name}.</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <select
+                      value={selectedTermId}
+                      onChange={(e) => setSelectedTermId(e.target.value)}
+                      style={{ padding: '0.375rem 0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8125rem' }}
+                    >
+                      {terms.map(term => (
+                        <option key={term.id} value={term.id}>{term.name}</option>
+                      ))}
+                    </select>
+                    <button 
+                      className="btn btn--outline btn--small" 
+                      onClick={() => {
+                        exportToCSV(`performance_${assignedClass.name}.csv`, [
+                          { key: 'student.admission_number', label: 'Admission No.' },
+                          { key: 'student.first_name', label: 'First Name' },
+                          { key: 'student.last_name', label: 'Last Name' },
+                          { key: 'total_entries', label: 'Subjects Count' },
+                          { key: 'average_score', label: 'Average Score (%)' },
+                          { key: 'letter_grade', label: 'Grade' }
+                        ], performanceData);
+                      }}
+                    >
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                {performanceData.length === 0 ? (
+                  <div className="pane-empty">
+                    <span className="empty-icon">📊</span>
+                    <h4 className="empty-title">No Performance Data</h4>
+                    <p className="empty-desc">No grades have been entered for this class term.</p>
+                  </div>
+                ) : (
+                  <div className="students-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                          <th style={{ padding: '0.875rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569' }}>Student</th>
+                          <th style={{ padding: '0.875rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Subjects Graded</th>
+                          <th style={{ padding: '0.875rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Average Score</th>
+                          <th style={{ padding: '0.875rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#475569', textAlign: 'center' }}>Overall Grade</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {performanceData.map(item => (
+                          <tr key={item.student.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '1rem', fontSize: '0.875rem' }}>
+                              <strong style={{ color: '#1e293b' }}>{item.student.first_name} {item.student.last_name}</strong>
+                              <div style={{ fontSize: '0.6875rem', color: '#64748b', marginTop: '0.125rem' }}>{item.student.admission_number}</div>
+                            </td>
+                            <td style={{ padding: '1rem', textAlign: 'center', fontSize: '0.875rem', color: '#475569' }}>
+                              {item.total_entries}
+                            </td>
+                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                              <span style={{ fontSize: '1rem', fontWeight: 'bold', color: item.average_score >= 50 ? '#16a34a' : '#dc2626' }}>
+                                {item.average_score}%
+                              </span>
+                            </td>
+                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                              <span style={{ 
+                                display: 'inline-block', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.8125rem', fontWeight: 'bold',
+                                backgroundColor: item.letter_grade === 'A' ? '#dcfce7' : item.letter_grade === 'F' ? '#fee2e2' : '#f1f5f9',
+                                color: item.letter_grade === 'A' ? '#16a34a' : item.letter_grade === 'F' ? '#dc2626' : '#1e293b'
+                              }}>
+                                {item.letter_grade}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 

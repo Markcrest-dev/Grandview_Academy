@@ -167,5 +167,75 @@ router.post('/', requireAuth, async (req, res, next) => {
   }
 });
 
-export default router;
+/**
+ * GET /api/grades/performance
+ * Get aggregated performance reports for a class and term.
+ */
+router.get('/performance', requireAuth, async (req, res, next) => {
+  try {
+    const { class_id, term_id } = req.query;
+    
+    if (!class_id) {
+      return sendError(res, { message: 'class_id is required', statusCode: 400 });
+    }
+    
+    let query = supabaseAdmin
+      .from('grades')
+      .select('*, students(id, first_name, last_name, admission_number)')
+      .eq('class_id', class_id);
+      
+    if (term_id) {
+      query = query.eq('term_id', term_id);
+    }
+    
+    const { data: grades, error } = await query;
+    if (error) throw error;
+    
+    // Group by student
+    const studentMap = {};
+    
+    for (const g of grades) {
+      if (!g.students) continue; // safety
+      const sid = g.student_id;
+      if (!studentMap[sid]) {
+        studentMap[sid] = {
+          student: g.students,
+          totalScore: 0,
+          totalMax: 0,
+          entries: 0
+        };
+      }
+      studentMap[sid].totalScore += Number(g.score);
+      studentMap[sid].totalMax += Number(g.max_score);
+      studentMap[sid].entries += 1;
+    }
+    
+    const performance = Object.values(studentMap).map(item => {
+      const average = item.totalMax > 0 ? (item.totalScore / item.totalMax) * 100 : 0;
+      let letterGrade = 'F';
+      if (average >= 70) letterGrade = 'A';
+      else if (average >= 60) letterGrade = 'B';
+      else if (average >= 50) letterGrade = 'C';
+      else if (average >= 40) letterGrade = 'D';
+      
+      return {
+        student: item.student,
+        average_score: parseFloat(average.toFixed(2)),
+        letter_grade: letterGrade,
+        total_entries: item.entries
+      };
+    });
+    
+    // Sort by highest average
+    performance.sort((a, b) => b.average_score - a.average_score);
+    
+    sendSuccess(res, {
+      data: performance,
+      message: 'Performance reports generated.'
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
+export default router;

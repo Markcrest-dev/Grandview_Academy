@@ -3,6 +3,7 @@ import { apiUrl } from '../../../utils/api';
 import { useNavigate, Link } from 'react-router-dom';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { exportToCSV } from '../../../utils/exportUtils';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
 
   const [recentApplications, setRecentApplications] = useState([]);
   const [flaggedStudents, setFlaggedStudents] = useState([]);
+  const [defaulters, setDefaulters] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Mock Data for KPI Charts
@@ -65,6 +67,14 @@ export default function AdminDashboard() {
         const flaggedData = await flaggedRes.json();
         if (flaggedData.success) {
           setFlaggedStudents(flaggedData.data);
+        }
+
+        // Fetch fee defaulters
+        const token = localStorage.getItem('token');
+        const defRes = await fetch(apiUrl('/api/fees/defaulters'), { headers: { 'Authorization': `Bearer ${token}` } });
+        const defData = await defRes.json();
+        if (defData.success) {
+          setDefaulters(defData.data);
         }
 
         setMetrics({
@@ -246,6 +256,54 @@ export default function AdminDashboard() {
                     <div className="app-status">
                       <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#dc2626' }}>{student.attendance_rate}%</span>
                       <span className="app-time">Rate</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Fee Defaulters Pane */}
+          <div className="dash-pane">
+            <div className="dash-pane__header">
+              <h3 className="dash-pane__title" style={{ color: '#b45309' }}>💰 Fee Defaulters</h3>
+              <button 
+                className="btn btn--outline btn--small" 
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                onClick={() => {
+                  exportToCSV('fee_defaulters.csv', [
+                    { key: 'admission_number', label: 'Admission No.' },
+                    { key: 'first_name', label: 'First Name' },
+                    { key: 'last_name', label: 'Last Name' },
+                    { key: 'classes.name', label: 'Class' },
+                    { key: 'outstanding_balance', label: 'Balance Owed (NGN)' }
+                  ], defaulters);
+                }}
+              >Export CSV</button>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1rem' }}>Students with outstanding balances.</p>
+            
+            {loading ? (
+              <div className="pane-loading">
+                <div className="pane-spinner"></div>
+              </div>
+            ) : defaulters.length === 0 ? (
+              <div className="pane-empty">
+                <span className="empty-icon" style={{ backgroundColor: '#f0fdf4', color: '#15803d' }}>✓</span>
+                <h4 className="empty-title">All Paid Up</h4>
+                <p className="empty-desc">No students have outstanding fee balances.</p>
+              </div>
+            ) : (
+              <div className="recent-apps-list" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                {defaulters.map((student) => (
+                  <div key={student.id} className="recent-app-item" style={{ borderLeft: '3px solid #f59e0b' }}>
+                    <div className="app-info" style={{ marginLeft: '0.5rem' }}>
+                      <h4 className="app-name">{student.first_name} {student.last_name}</h4>
+                      <span className="app-meta">{student.admission_number} · <strong>{student.classes?.name || 'Unassigned'}</strong></span>
+                    </div>
+                    <div className="app-status">
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#b45309' }}>₦{student.outstanding_balance.toLocaleString()}</span>
+                      <span className="app-time">Owed</span>
                     </div>
                   </div>
                 ))}

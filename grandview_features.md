@@ -184,12 +184,12 @@ Update this table as features are built and deployed.
 | Attendance Reports | Reporting | 🔴 High | ✅ Built |
 | Payment Receipt Generator | Finance | 🔴 High | ✅ Built |
 | Internal Messaging | Communication | 🔴 High | ✅ Built |
-| Timetable Generator | Academic | 🟡 Medium | ⬜ Not Started |
-| Admin Analytics Dashboard | Reporting | 🟡 Medium | ⬜ Not Started |
+| Timetable Generator | Academic | 🟡 Medium | ✅ Built |
+| Admin Analytics Dashboard | Reporting | 🟡 Medium | ✅ Built |
 | Bulk SMS / Email | Communication | 🟡 Medium | ⬜ Not Started |
-| Student Performance Reports | Reporting | 🟡 Medium | ⬜ Not Started |
-| Fee Defaulter List | Finance | 🟡 Medium | ⬜ Not Started |
-| Export to Excel / PDF | Reporting | 🟡 Medium | ⬜ Not Started |
+| Student Performance Reports | Reporting | 🟡 Medium | ✅ Built |
+| Fee Defaulter List | Finance | 🟡 Medium | ✅ Built |
+| Export to Excel / PDF | Reporting | 🟡 Medium | ✅ Built |
 | Library Management | Operations | 🟡 Medium | ⬜ Not Started |
 | Health Records System | Operations | 🟡 Medium | ⬜ Not Started |
 | GPA / Grade Calculator | Academic | 🟡 Medium | ⬜ Not Started |

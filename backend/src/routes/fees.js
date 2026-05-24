@@ -254,6 +254,76 @@ router.post('/payments', requireAuth, requireRoles('admin', 'non_teaching_staff'
   }
 });
 
+/**
+ * GET /api/fees/defaulters
+ * List students with outstanding balances.
+ */
+router.get('/defaulters', requireAuth, requireRoles('admin', 'non_teaching_staff'), async (req, res, next) => {
+  try {
+    const { term_id } = req.query;
+    
+    // 1. Get all students with their classes
+    const { data: students, error: studErr } = await supabaseAdmin
+      .from('students')
+      .select('*, classes(*)');
+      
+    if (studErr) throw studErr;
+
+    // 2. Get active fee structures (filtered by term if provided)
+    let structQuery = supabaseAdmin.from('fee_structures').select('*');
+    if (term_id) structQuery = structQuery.eq('term_id', term_id);
+    const { data: structures, error: structErr } = await structQuery;
+    if (structErr) throw structErr;
+
+    // 3. Get all fee payments (filtered by term if provided)
+    let payQuery = supabaseAdmin.from('fee_payments').select('*, fee_structures(term_id)');
+    const { data: allPayments, error: payErr } = await payQuery;
+    if (payErr) throw payErr;
+    
+    let payments = allPayments;
+    if (term_id) {
+      payments = allPayments.filter(p => p.fee_structures?.term_id === term_id);
+    }
+
+    // 4. Calculate balance for each student
+    const defaulters = [];
+    
+    for (const student of students) {
+      // Find fee structures applicable to this student's level
+      const applicableStructures = structures.filter(s => s.level === student.level);
+      if (applicableStructures.length === 0) continue;
+      
+      const totalExpected = applicableStructures.reduce((sum, s) => sum + Number(s.amount), 0);
+      
+      // Sum student's payments
+      const studentPayments = payments.filter(p => p.student_id === student.id);
+      const totalPaid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
+      
+      const balance = totalExpected - totalPaid;
+      
+      if (balance > 0) {
+        defaulters.push({
+          ...student,
+          total_expected: totalExpected,
+          total_paid: totalPaid,
+          outstanding_balance: balance
+        });
+      }
+    }
+    
+    // Sort by largest balance first
+    defaulters.sort((a, b) => b.outstanding_balance - a.outstanding_balance);
+
+    sendSuccess(res, {
+      data: defaulters,
+      message: 'Defaulters list computed successfully.',
+      pagination: { page: 1, limit: defaulters.length, total: defaulters.length }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ============================================================
 // PAYSTACK PAYMENT INTEGRATION
 // ============================================================
