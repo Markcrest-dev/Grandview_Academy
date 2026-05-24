@@ -10,8 +10,15 @@ export default function BursarDashboard() {
   const [message, setMessage] = useState({ text: '', type: '' });
 
   // Form states
-  const [activeFormTab, setActiveFormTab] = useState('payment'); // 'payment' or 'structure'
+  const [activeFormTab, setActiveFormTab] = useState('payment'); // 'payment', 'structure', 'scholarship'
+  const [scholarships, setScholarships] = useState([]);
   
+  const [scholarshipForm, setScholarshipForm] = useState({
+    student_id: '',
+    admission_number: '',
+    title: '',
+    percentage_discount: ''
+  });
   const [feeForm, setFeeForm] = useState({
     academic_year_id: '8090544a-e490-48b4-934c-6874e4feee21', // Seeded ID
     term_id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', // Seeded ID
@@ -65,7 +72,19 @@ export default function BursarDashboard() {
           setStudents(studentData.data);
           if (studentData.data.length > 0) {
             setPaymentForm(prev => ({ ...prev, student_id: studentData.data[0].id }));
+            setScholarshipForm(prev => ({ 
+              ...prev, 
+              student_id: studentData.data[0].id,
+              admission_number: studentData.data[0].admission_number 
+            }));
           }
+        }
+
+        // Fetch Scholarships
+        const scholRes = await fetch(apiUrl('/api/fees/scholarships'), { headers: authHeaders });
+        const scholData = await scholRes.json();
+        if (scholData.success) {
+          setScholarships(scholData.data);
         }
       } catch (err) {
         console.error('Bursar data loading error:', err);
@@ -120,6 +139,32 @@ export default function BursarDashboard() {
         setPaymentForm(prev => ({ ...prev, amount_paid: '', remarks: '' }));
       } else {
         setMessage({ text: data.message || 'Failed to register payment.', type: 'danger' });
+      }
+    } catch (err) {
+      setMessage({ text: 'An unexpected connection error occurred.', type: 'danger' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleScholarshipSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setMessage({ text: '', type: '' });
+
+    try {
+      const res = await fetch(apiUrl('/api/fees/scholarships'), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify(scholarshipForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ text: 'Scholarship awarded successfully!', type: 'success' });
+        setScholarships(prev => [data.data, ...prev]);
+        setScholarshipForm(prev => ({ ...prev, title: '', percentage_discount: '' }));
+      } else {
+        setMessage({ text: data.message || 'Failed to award scholarship.', type: 'danger' });
       }
     } catch (err) {
       setMessage({ text: 'An unexpected connection error occurred.', type: 'danger' });
@@ -222,6 +267,21 @@ export default function BursarDashboard() {
               }}
             >
               Add Fee Rate
+            </button>
+            <button
+              onClick={() => setActiveFormTab('scholarship')}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0.75rem 1rem',
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                color: activeFormTab === 'scholarship' ? 'var(--color-navy, #1b2a4a)' : '#94a3b8',
+                borderBottom: activeFormTab === 'scholarship' ? '2.5px solid var(--color-gold, #C9A84C)' : 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Award Scholarship
             </button>
           </div>
 
@@ -365,6 +425,68 @@ export default function BursarDashboard() {
                 style={{ width: '100%', padding: '0.75rem', fontWeight: 700 }}
               >
                 {submitting ? 'Creating Rate...' : 'Publish Fee Structure Item 📝'}
+              </button>
+            </form>
+          ) : (
+            /* AWARD SCHOLARSHIP FORM */
+            <form onSubmit={handleScholarshipSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Select Student</label>
+                <select
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.875rem', outline: 'none' }}
+                  value={scholarshipForm.student_id}
+                  onChange={(e) => {
+                    const student = students.find(s => s.id === e.target.value);
+                    setScholarshipForm(prev => ({ 
+                      ...prev, 
+                      student_id: e.target.value,
+                      admission_number: student ? student.admission_number : ''
+                    }));
+                  }}
+                  required
+                >
+                  <option value="" disabled>-- Choose Student --</option>
+                  {students.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.first_name} {s.last_name} ({s.admission_number})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Scholarship Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Academic Excellence Award"
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.875rem', outline: 'none' }}
+                  value={scholarshipForm.title}
+                  onChange={(e) => setScholarshipForm(p => ({ ...p, title: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Discount Percentage (%)</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 50"
+                  min="1"
+                  max="100"
+                  style={{ width: '100%', padding: '0.625rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.875rem', outline: 'none' }}
+                  value={scholarshipForm.percentage_discount}
+                  onChange={(e) => setScholarshipForm(p => ({ ...p, percentage_discount: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn btn--gold"
+                style={{ width: '100%', padding: '0.75rem', fontWeight: 700 }}
+              >
+                {submitting ? 'Awarding...' : 'Award Scholarship 🎓'}
               </button>
             </form>
           )}

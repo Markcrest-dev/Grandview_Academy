@@ -3,8 +3,35 @@ import { supabaseAdmin } from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { parsePagination, validateRequired, isEnum } from '../utils/validators.js';
 import { requireAuth, requireRoles } from '../middleware/auth.js';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
+const DB_PATH = path.resolve(process.cwd(), 'src/data/scholarships.json');
+
+// Helper to read DB
+function readDb() {
+  try {
+    if (!fs.existsSync(DB_PATH)) {
+      return { scholarships: [] };
+    }
+    const raw = fs.readFileSync(DB_PATH, 'utf8');
+    return JSON.parse(raw);
+  } catch (err) {
+    return { scholarships: [] };
+  }
+}
+
+// Helper to write DB
+function writeDb(data) {
+  try {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Error writing scholarships DB:', err);
+    return false;
+  }
+}
 const VALID_LEVELS = ['primary', 'secondary', 'university'];
 
 /**
@@ -567,6 +594,49 @@ router.get('/receipts/:payment_id', requireAuth, async (req, res, next) => {
 
     sendSuccess(res, { data: receipt, message: 'Receipt generated successfully.' });
   } catch (err) { next(err); }
+});
+
+/**
+ * GET /api/fees/scholarships
+ * List scholarships
+ */
+router.get('/scholarships', requireAuth, (req, res) => {
+  try {
+    const db = readDb();
+    sendSuccess(res, { data: db.scholarships, message: 'Scholarships fetched' });
+  } catch (err) {
+    sendError(res, { message: err.message, statusCode: 500 });
+  }
+});
+
+/**
+ * POST /api/fees/scholarships
+ * Award a scholarship
+ */
+router.post('/scholarships', requireAuth, requireRoles('admin', 'non_teaching_staff'), (req, res) => {
+  try {
+    const { student_id, admission_number, title, percentage_discount } = req.body;
+    if (!student_id || !percentage_discount) {
+      return sendError(res, { message: 'student_id and percentage_discount are required', statusCode: 400 });
+    }
+
+    const db = readDb();
+    const newScholarship = {
+      id: Date.now().toString(),
+      student_id,
+      admission_number,
+      title: title || 'General Scholarship',
+      percentage_discount: Number(percentage_discount),
+      created_at: new Date().toISOString()
+    };
+    
+    db.scholarships.push(newScholarship);
+    writeDb(db);
+
+    sendSuccess(res, { data: newScholarship, message: 'Scholarship awarded successfully.' });
+  } catch (err) {
+    sendError(res, { message: err.message, statusCode: 500 });
+  }
 });
 
 export default router;

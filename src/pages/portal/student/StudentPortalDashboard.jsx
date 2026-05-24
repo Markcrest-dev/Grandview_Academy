@@ -30,6 +30,10 @@ export default function StudentPortalDashboard() {
   // Announcements State
   const [announcements, setAnnouncements] = useState([]);
 
+  // Course Registration State
+  const [courseRegistration, setCourseRegistration] = useState([]);
+  const [availableElectives, setAvailableElectives] = useState([]);
+
   const token = localStorage.getItem('token');
   const authHeaders = {
     'Authorization': `Bearer ${token}`,
@@ -117,6 +121,20 @@ export default function StudentPortalDashboard() {
           if (resData.success) {
             setAnnouncements(resData.data);
           }
+        } else if (activeTab === 'registration') {
+          // Fetch available electives for their level
+          const subRes = await fetch(apiUrl(`/api/subjects?level=${profileData.level}`), { headers: authHeaders });
+          const subData = await subRes.json();
+          if (subData.success) {
+            // we will filter for is_elective in the UI or here. Let's just fetch all and filter in UI for flexibility.
+            setAvailableElectives(subData.data.filter(s => s.is_elective));
+          }
+          // Fetch current registration
+          const regRes = await fetch(apiUrl(`/api/academics/registration?student_id=${profileData.id}`), { headers: authHeaders });
+          const regData = await regRes.json();
+          if (regData.success) {
+            setCourseRegistration(regData.data);
+          }
         }
       } catch (err) {
         console.error('Error fetching student details:', err);
@@ -193,6 +211,24 @@ export default function StudentPortalDashboard() {
     } catch (err) {
       console.error(err);
       alert('An error occurred submitting the assignment.');
+    }
+  };
+
+  const handleSaveRegistration = async () => {
+    try {
+      const res = await fetch(apiUrl('/api/academics/registration'), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ student_id: profileData.id, subject_ids: courseRegistration })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Course registration saved successfully!');
+      } else {
+        alert(data.message || 'Failed to save course registration.');
+      }
+    } catch (err) {
+      alert('Network error while saving registration.');
     }
   };
 
@@ -308,6 +344,7 @@ export default function StudentPortalDashboard() {
                 { id: 'materials', label: 'Learning Materials 📚', icon: '' },
                 { id: 'assignments', label: 'Assignments & Tasks ✍️', icon: '' },
                 { id: 'fees', label: 'Fees & Invoices ₦', icon: '' },
+                { id: 'registration', label: 'Course Registration 🎓', icon: '' },
                 { id: 'alerts', label: 'Announcements 📢', icon: '' },
                 { id: 'messages', label: 'Messages 💬', icon: '' }
               ].map(tab => (
@@ -891,6 +928,68 @@ export default function StudentPortalDashboard() {
                   </div>
                 </div>
 
+              </div>
+            )}
+
+            {/* TAB: COURSE REGISTRATION */}
+            {!loadingData && activeTab === 'registration' && (
+              <div className="dash-pane">
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h3 className="dash-pane__title" style={{ margin: 0 }}>Elective Course Registration</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Select the elective subjects you wish to enroll in for this term.</p>
+                </div>
+
+                {availableElectives.length === 0 ? (
+                  <div className="pane-empty" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+                    <span className="empty-icon">🎓</span>
+                    <h4 className="empty-title">No Electives Found</h4>
+                    <p className="empty-desc">There are no elective subjects available for your academic level.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                      {availableElectives.map(subject => {
+                        const isRegistered = courseRegistration.includes(subject.id);
+                        return (
+                          <div key={subject.id} 
+                            onClick={() => {
+                              if (isRegistered) {
+                                setCourseRegistration(prev => prev.filter(id => id !== subject.id));
+                              } else {
+                                setCourseRegistration(prev => [...prev, subject.id]);
+                              }
+                            }}
+                            style={{ 
+                              padding: '1.25rem', 
+                              background: isRegistered ? '#f0fdf4' : '#ffffff', 
+                              border: `2px solid ${isRegistered ? '#16a34a' : '#e2e8f0'}`, 
+                              borderRadius: '6px', 
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <div>
+                              <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.9rem', color: '#0f172a' }}>{subject.name}</h4>
+                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Code: {subject.code}</span>
+                            </div>
+                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: `2px solid ${isRegistered ? '#16a34a' : '#cbd5e1'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isRegistered ? '#16a34a' : 'transparent' }}>
+                              {isRegistered && <span style={{ color: 'white', fontSize: '14px' }}>✓</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button onClick={handleSaveRegistration} className="btn btn--navy" style={{ padding: '0.75rem 2rem' }}>
+                        Save Course Registration
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

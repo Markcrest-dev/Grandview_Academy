@@ -3,8 +3,35 @@ import { supabaseAdmin } from '../config/database.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { parsePagination, validateRequired } from '../utils/validators.js';
 import { requireAuth } from '../middleware/auth.js';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
+const DB_PATH = path.resolve(process.cwd(), 'src/data/ptm_schedules.json');
+
+// Helper to read DB
+function readDb() {
+  try {
+    if (!fs.existsSync(DB_PATH)) {
+      return { meetings: [] };
+    }
+    const raw = fs.readFileSync(DB_PATH, 'utf8');
+    return JSON.parse(raw);
+  } catch (err) {
+    return { meetings: [] };
+  }
+}
+
+// Helper to write DB
+function writeDb(data) {
+  try {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Error writing PTM DB:', err);
+    return false;
+  }
+}
 
 /**
  * GET /api/messages/conversations
@@ -330,6 +357,58 @@ router.post('/broadcast', requireAuth, async (req, res, next) => {
       message: 'Broadcast dispatched successfully.' 
     });
   } catch (err) { next(err); }
+});
+
+/**
+ * GET /api/messages/ptm
+ * List PTM schedules for the logged in user
+ */
+router.get('/ptm', requireAuth, (req, res) => {
+  try {
+    const db = readDb();
+    const userId = req.user.id;
+    const isTeacher = req.user.role === 'teaching_staff';
+    
+    const relevantMeetings = db.meetings.filter(m => 
+      isTeacher ? m.teacher_user_id === userId : m.parent_user_id === userId
+    );
+    
+    sendSuccess(res, { data: relevantMeetings, message: 'PTM schedules fetched' });
+  } catch (err) {
+    sendError(res, { message: err.message, statusCode: 500 });
+  }
+});
+
+/**
+ * POST /api/messages/ptm
+ * Schedule a parent-teacher meeting
+ */
+router.post('/ptm', requireAuth, (req, res) => {
+  try {
+    const { teacher_user_id, student_id, date, time } = req.body;
+    if (!teacher_user_id || !date || !time) {
+      return sendError(res, { message: 'teacher_user_id, date, and time are required', statusCode: 400 });
+    }
+
+    const db = readDb();
+    const newMeeting = {
+      id: Date.now().toString(),
+      parent_user_id: req.user.id,
+      teacher_user_id,
+      student_id,
+      date,
+      time,
+      status: 'scheduled',
+      created_at: new Date().toISOString()
+    };
+    
+    db.meetings.push(newMeeting);
+    writeDb(db);
+
+    sendSuccess(res, { data: newMeeting, message: 'Meeting scheduled successfully.' });
+  } catch (err) {
+    sendError(res, { message: err.message, statusCode: 500 });
+  }
 });
 
 export default router;

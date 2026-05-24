@@ -20,6 +20,7 @@ import parentsRouter from './parents.js';
 import notificationsRouter from './notifications.js';
 import assignmentsRouter from './assignments.js';
 import messagingRouter from './messaging.js';
+import academicsRouter from './academics.js';
 
 const router = Router();
 
@@ -45,6 +46,7 @@ router.use('/parents', parentsRouter);
 router.use('/notifications', notificationsRouter);
 router.use('/assignments', assignmentsRouter);
 router.use('/messages', messagingRouter);
+router.use('/academics', academicsRouter);
 
 export default router;
 

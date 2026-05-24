@@ -7,7 +7,7 @@ import { exportToCSV } from '../../../utils/exportUtils';
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('roster'); // roster, attendance, grades, timetable, analytics
+  const [activeTab, setActiveTab] = useState('roster'); // roster, attendance, grades, timetable, analytics, ptm
   const [assignedClass, setAssignedClass] = useState(null);
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -27,7 +27,11 @@ export default function TeacherDashboard() {
   const [submissions, setSubmissions] = useState([]);
   const [gradingSubmission, setGradingSubmission] = useState(null);
   const [gradeScore, setGradeScore] = useState('');
+  const [gradeScore, setGradeScore] = useState('');
   const [gradeRemarks, setGradeRemarks] = useState('');
+
+  // PTM state
+  const [ptmSchedules, setPtmSchedules] = useState([]);
 
   // Announcements state
   const [announcements, setAnnouncements] = useState([]);
@@ -242,6 +246,26 @@ export default function TeacherDashboard() {
       }
     }
     loadAnnouncements();
+  }, [activeTab]);
+
+  // 6b. Pre-fetch PTM schedules
+  useEffect(() => {
+    async function loadPtmSchedules() {
+      if (activeTab !== 'ptm') return;
+      setLoadingData(true);
+      try {
+        const res = await fetch(apiUrl('/api/messages/ptm'), { headers: authHeaders });
+        const resData = await res.json();
+        if (resData.success) {
+          setPtmSchedules(resData.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+    loadPtmSchedules();
   }, [activeTab]);
 
   // 7. Pre-fetch analytics
@@ -481,6 +505,7 @@ export default function TeacherDashboard() {
                 { id: 'analytics', label: 'Performance Analytics', icon: '📊' },
                 { id: 'timetable', label: 'Form Timetable', icon: '🏫' },
                 { id: 'assignments', label: 'Assignments', icon: '📚' },
+                { id: 'ptm', label: 'Parent Meetings', icon: '🤝' },
                 { id: 'alerts', label: 'Announcements 📢', icon: '' },
                 { id: 'messages', label: 'Messages 💬', icon: '' }
               ].map(tab => (
@@ -1065,6 +1090,42 @@ export default function TeacherDashboard() {
             {!loadingData && activeTab === 'messages' && (
               <div className="dash-pane" style={{ padding: '0', background: 'transparent', border: 'none', boxShadow: 'none' }}>
                 <MessagingInterface />
+              </div>
+            )}
+
+            {!loadingData && activeTab === 'ptm' && (
+              <div className="dash-pane">
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h3 className="dash-pane__title" style={{ margin: 0 }}>Parent-Teacher Meetings</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Review your upcoming meetings scheduled by parents.</p>
+                </div>
+
+                {ptmSchedules.length === 0 ? (
+                  <div className="pane-empty" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+                    <span className="empty-icon">🤝</span>
+                    <h4 className="empty-title">No Meetings Scheduled</h4>
+                    <p className="empty-desc">You do not have any upcoming parent-teacher meetings.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {ptmSchedules.map(ptm => (
+                      <div key={ptm.id} style={{ padding: '1.25rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', borderLeft: '4px solid #C9A84C' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1b2a4a', margin: 0 }}>
+                            Meeting with Parent
+                          </h4>
+                          <span className="status-badge status-badge--active" style={{ fontSize: '0.625rem', padding: '2px 8px' }}>
+                            {ptm.status.toUpperCase()}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: '#475569', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                          <span><strong>Date:</strong> {ptm.date}</span>
+                          <span><strong>Time:</strong> {ptm.time}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

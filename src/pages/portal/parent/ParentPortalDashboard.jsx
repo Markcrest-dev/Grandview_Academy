@@ -11,7 +11,7 @@ export default function ParentPortalDashboard() {
   const [selectedChildData, setSelectedChildData] = useState(null);
   
   // Tab states
-  const [subTab, setSubTab] = useState('profile'); // profile, timetable, attendance, report, fees, alerts
+  const [subTab, setSubTab] = useState('profile'); // profile, timetable, attendance, report, fees, alerts, ptm
   const [loading, setLoading] = useState(true);
   const [childLoading, setChildLoading] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
@@ -43,6 +43,13 @@ export default function ParentPortalDashboard() {
   const [teacherMessage, setTeacherMessage] = useState('');
   const [messageSending, setMessageSending] = useState(false);
   const [messageSuccess, setMessageSuccess] = useState(false);
+
+  // PTM States
+  const [ptmSchedules, setPtmSchedules] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [showPtmModal, setShowPtmModal] = useState(false);
+  const [ptmForm, setPtmForm] = useState({ teacher_user_id: '', date: '', time: '' });
+  const [ptmSubmitting, setPtmSubmitting] = useState(false);
 
   const token = localStorage.getItem('token');
   const authHeaders = {
@@ -144,6 +151,22 @@ export default function ParentPortalDashboard() {
           const attData = await attRes.json();
           if (attData.success) {
             setAttendanceData(attData.data);
+          }
+        } else if (subTab === 'ptm') {
+          // Fetch existing schedules
+          const ptmRes = await fetch(apiUrl('/api/messages/ptm'), { headers: authHeaders });
+          const ptmData = await ptmRes.json();
+          if (ptmData.success) {
+            setPtmSchedules(ptmData.data);
+          }
+          // Fetch teachers for the current class
+          if (selectedChildData.classes?.id) {
+            // we will fetch all teachers for simplicity or fetch staff
+            const staffRes = await fetch(apiUrl('/api/staff?role=teaching_staff'), { headers: authHeaders });
+            const staffData = await staffRes.json();
+            if (staffData.success) {
+              setTeachers(staffData.data);
+            }
           }
         }
       } catch (err) {
@@ -272,6 +295,36 @@ export default function ParentPortalDashboard() {
 
   const triggerPrint = () => {
     window.print();
+  };
+
+  const handlePtmSubmit = async (e) => {
+    e.preventDefault();
+    if (!ptmForm.teacher_user_id || !ptmForm.date || !ptmForm.time) return;
+    
+    setPtmSubmitting(true);
+    try {
+      const res = await fetch(apiUrl('/api/messages/ptm'), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          ...ptmForm,
+          student_id: selectedChildId
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Meeting scheduled successfully!');
+        setPtmSchedules(prev => [...prev, data.data]);
+        setShowPtmModal(false);
+        setPtmForm({ teacher_user_id: '', date: '', time: '' });
+      } else {
+        alert(data.message || 'Failed to schedule meeting.');
+      }
+    } catch (err) {
+      alert('Network error while scheduling meeting.');
+    } finally {
+      setPtmSubmitting(false);
+    }
   };
 
   return (
@@ -411,6 +464,7 @@ export default function ParentPortalDashboard() {
                     { id: 'report', label: 'Report Card Transcript', icon: '📝' },
                     { id: 'assignments', label: 'Assignments Tracker 📚', icon: '' },
                     { id: 'fees', label: 'Fees & Payments 💳', icon: '' },
+                    { id: 'ptm', label: 'PTM Scheduler 📅', icon: '' },
                     { id: 'alerts', label: 'Alerts & Announcements 🔔', icon: '' },
                     { id: 'messages', label: 'Messages 💬', icon: '' }
                   ].map(tab => (
@@ -952,6 +1006,48 @@ export default function ParentPortalDashboard() {
                   </div>
                 )}
 
+                {/* SUBTAB: PTM SCHEDULER */}
+                {!loadingMetrics && subTab === 'ptm' && (
+                  <div className="dash-pane">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div>
+                        <h3 className="dash-pane__title" style={{ margin: 0 }}>Parent-Teacher Meetings</h3>
+                        <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Schedule and manage meetings with your child's teachers.</p>
+                      </div>
+                      <button onClick={() => setShowPtmModal(true)} className="btn btn--navy" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 'bold' }}>
+                        Book Meeting 📅
+                      </button>
+                    </div>
+
+                    {ptmSchedules.length === 0 ? (
+                      <div className="pane-empty" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+                        <span className="empty-icon">📅</span>
+                        <h4 className="empty-title">No Meetings Scheduled</h4>
+                        <p className="empty-desc">You do not have any upcoming parent-teacher meetings.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {ptmSchedules.map(ptm => (
+                          <div key={ptm.id} style={{ padding: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', borderLeft: '4px solid #C9A84C' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                              <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1b2a4a', margin: 0 }}>
+                                Meeting with Instructor
+                              </h4>
+                              <span className="status-badge status-badge--active" style={{ fontSize: '0.625rem', padding: '2px 8px' }}>
+                                {ptm.status.toUpperCase()}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: '#475569', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                              <span><strong>Date:</strong> {ptm.date}</span>
+                              <span><strong>Time:</strong> {ptm.time}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </div>
             ) : null}
           </div>
@@ -1062,6 +1158,66 @@ export default function ParentPortalDashboard() {
             >
               Back to Invoices Ledger
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: BOOK PTM */}
+      {showPtmModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }} className="no-print">
+          <div style={{ background: '#ffffff', borderRadius: '8px', padding: '2rem', width: '100%', maxWidth: '440px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.25rem' }}>Book a Meeting</h3>
+              <button onClick={() => setShowPtmModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>×</button>
+            </div>
+            
+            <form onSubmit={handlePtmSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Select Teacher</label>
+                <select
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none' }}
+                  value={ptmForm.teacher_user_id}
+                  onChange={(e) => setPtmForm(prev => ({ ...prev, teacher_user_id: e.target.value }))}
+                  required
+                >
+                  <option value="" disabled>-- Choose Instructor --</option>
+                  {teachers.map(t => (
+                    <option key={t.id} value={t.id}>{t.first_name} {t.last_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Date</label>
+                <input
+                  type="date"
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none' }}
+                  value={ptmForm.date}
+                  onChange={(e) => setPtmForm(prev => ({ ...prev, date: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Time</label>
+                <input
+                  type="time"
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none' }}
+                  value={ptmForm.time}
+                  onChange={(e) => setPtmForm(prev => ({ ...prev, time: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={ptmSubmitting}
+                className="btn btn--navy"
+                style={{ padding: '0.75rem', fontWeight: 'bold', marginTop: '0.5rem' }}
+              >
+                {ptmSubmitting ? 'Booking...' : 'Confirm Appointment'}
+              </button>
+            </form>
           </div>
         </div>
       )}
