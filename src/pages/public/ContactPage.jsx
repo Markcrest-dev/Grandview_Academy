@@ -118,11 +118,9 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Map Placeholder */}
+      {/* Map */}
       <section className="map-section">
-        <div className="map-placeholder">
-          <span>Map — 12 Academy Drive, Victoria Island, Lagos</span>
-        </div>
+        <img src="/images/school_map.png" alt="Map — 12 Academy Drive, Victoria Island, Lagos" style={{ width: '100%', height: '400px', objectFit: 'cover', display: 'block' }} />
       </section>
     </PageWrapper>
   );

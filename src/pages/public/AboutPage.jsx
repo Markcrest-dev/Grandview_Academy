@@ -63,9 +63,7 @@ export default function AboutPage() {
       <section className="section section--subtle">
         <div className="container principal-message">
           <div className="principal-message__photo">
-            <div className="principal-message__photo-placeholder">
-              <span>Principal's<br/>Photo</span>
-            </div>
+            <img src="/images/principal_portrait.png" alt="Principal" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <div className="principal-message__content">
             <span className="section-heading__label">From the Principal's Desk</span>

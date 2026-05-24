@@ -68,9 +68,13 @@ export default function GalleryPage() {
               >
                 <div
                   className="gallery-item__image"
-                  style={{ backgroundColor: photo.color }}
+                  style={{ 
+                    backgroundColor: photo.color,
+                    backgroundImage: `url(/images/gallery_photo_${photo.id % 2 + 1}.png)`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
                 >
-                  <span className="gallery-item__placeholder">Photo</span>
                 </div>
                 <div className="gallery-item__overlay">
                   <span className="gallery-item__category">{photo.category}</span>
@@ -93,9 +97,14 @@ export default function GalleryPage() {
             <button className="lightbox__close" onClick={() => setLightbox(null)}>✕</button>
             <div
               className="lightbox__image"
-              style={{ backgroundColor: lightbox.color }}
+              style={{ 
+                backgroundColor: lightbox.color,
+                backgroundImage: `url(/images/gallery_photo_${lightbox.id % 2 + 1}.png)`,
+                backgroundSize: 'contain',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }}
             >
-              <span className="gallery-item__placeholder" style={{ fontSize: '1.25rem' }}>Photo</span>
             </div>
             <div className="lightbox__info">
               <span className="lightbox__category">{lightbox.category}</span>

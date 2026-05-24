@@ -18,7 +18,7 @@ export default function VirtualTour() {
             </p>
           </div>
 
-          <div className="w-full bg-gray-200 rounded-lg aspect-video flex items-center justify-center relative overflow-hidden shadow-lg border border-gray-300">
+          <div className="w-full bg-gray-200 rounded-lg aspect-video flex items-center justify-center relative overflow-hidden shadow-lg border border-gray-300" style={{ backgroundImage: 'url(/images/virtual_tour.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
             {/* Placeholder for 3D Tour Embed or Video */}
             <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent flex flex-col justify-end p-8 z-10">
               <h3 className="text-white text-2xl font-bold mb-2">Main Campus View</h3>
