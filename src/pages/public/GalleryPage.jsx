@@ -70,7 +70,7 @@ export default function GalleryPage() {
                   className="gallery-item__image"
                   style={{ 
                     backgroundColor: photo.color,
-                    backgroundImage: `url(/images/gallery_photo_${(photo.id % 6) + 1}.png)`,
+                    backgroundImage: `url(/images/gallery_photo_${photo.id}.png)`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}
@@ -99,7 +99,7 @@ export default function GalleryPage() {
               className="lightbox__image"
               style={{ 
                 backgroundColor: lightbox.color,
-                backgroundImage: `url(/images/gallery_photo_${(lightbox.id % 6) + 1}.png)`,
+                backgroundImage: `url(/images/gallery_photo_${lightbox.id}.png)`,
                 backgroundSize: 'contain',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat'
