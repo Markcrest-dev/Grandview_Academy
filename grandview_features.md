@@ -194,9 +194,9 @@ Update this table as features are built and deployed.
 | Health Records System | Operations | 🟡 Medium | ✅ Built |
 | GPA / Grade Calculator | Academic | 🟡 Medium | ✅ Built |
 | Academic Transcript Generator | Academic | 🟡 Medium | ✅ Built |
-| Course Registration | Academic | 🟡 Medium | ⬜ Not Started |
-| Scholarship Management | Finance | 🟡 Medium | ⬜ Not Started |
-| Parent-Teacher Meeting Scheduler | Communication | 🟡 Medium | ⬜ Not Started |
+| Course Registration | Academic | 🟡 Medium | ✅ Built |
+| Scholarship Management | Finance | 🟡 Medium | ✅ Built |
+| Parent-Teacher Meeting Scheduler | Communication | 🟡 Medium | ✅ Built |
 | Progressive Web App | Mobile | 🟢 Low | ⬜ Not Started |
 | Alumni Portal | Website | 🟢 Low | ⬜ Not Started |
 | Virtual School Tour | Website | 🟢 Low | ⬜ Not Started |

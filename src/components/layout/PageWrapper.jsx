@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import FloatingWhatsAppButton from '../ui/FloatingWhatsAppButton';
 
 export default function PageWrapper({ title, description, children }) {
   const { pathname } = useLocation();
@@ -27,6 +28,7 @@ export default function PageWrapper({ title, description, children }) {
       <main style={{ paddingTop: '72px', minHeight: '100vh' }}>
         {children}
       </main>
+      <FloatingWhatsAppButton />
       <Footer />
     </>
   );

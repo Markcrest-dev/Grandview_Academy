@@ -1,22 +1,28 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import './Navbar.css';
 
 const navLinks = [
-  { label: 'Home', path: '/' },
-  { label: 'About', path: '/about' },
-  { label: 'Academics', path: '/academics' },
-  { label: 'Admissions', path: '/admissions' },
-  { label: 'Staff', path: '/staff' },
-  { label: 'News & Events', path: '/news' },
-  { label: 'Gallery', path: '/gallery' },
-  { label: 'Contact', path: '/contact' },
+  { key: 'home', path: '/' },
+  { key: 'about', path: '/about' },
+  { key: 'academics', path: '/academics' },
+  { key: 'admissions', path: '/admissions' },
+  { key: 'staff', path: '/staff' },
+  { key: 'news', path: '/news' },
+  { key: 'gallery', path: '/gallery' },
+  { key: 'contact', path: '/contact' },
 ];
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { t, i18n } = useTranslation();
+
+  const changeLanguage = (e) => {
+    i18n.changeLanguage(e.target.value);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -57,14 +63,26 @@ export default function Navbar() {
               to={link.path}
               className={`navbar__link ${location.pathname === link.path ? 'navbar__link--active' : ''}`}
             >
-              {link.label}
+              {t(`nav.${link.key}`)}
             </Link>
           ))}
         </nav>
 
-        <Link to="/login/student" className="navbar__portal-btn btn btn--gold btn--small">
-          Portal Login
-        </Link>
+        <div className="flex items-center gap-4">
+          <select 
+            onChange={changeLanguage} 
+            value={i18n.language}
+            className="bg-transparent text-sm border border-gray-300 rounded px-2 py-1 outline-none text-[#1A1A1A] mr-2"
+          >
+            <option value="en">EN</option>
+            <option value="fr">FR</option>
+            <option value="ha">HA</option>
+          </select>
+          
+          <Link to="/login/student" className="navbar__portal-btn btn btn--gold btn--small">
+            Portal Login
+          </Link>
+        </div>
 
         <button
           className="navbar__hamburger"
@@ -87,7 +105,7 @@ export default function Navbar() {
               to={link.path}
               className={`navbar__mobile-link ${location.pathname === link.path ? 'navbar__mobile-link--active' : ''}`}
             >
-              {link.label}
+              {t(`nav.${link.key}`)}
             </Link>
           ))}
           <Link to="/login/student" className="btn btn--gold" style={{ marginTop: '1rem', width: '100%' }}>

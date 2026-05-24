@@ -31,6 +31,8 @@ export default function Footer() {
               <li><Link to="/admissions">Admissions</Link></li>
               <li><Link to="/news">News & Events</Link></li>
               <li><Link to="/gallery">Gallery</Link></li>
+              <li><Link to="/tour">Virtual Tour</Link></li>
+              <li><Link to="/alumni">Alumni Portal</Link></li>
               <li><Link to="/contact">Contact Us</Link></li>
             </ul>
           </div>

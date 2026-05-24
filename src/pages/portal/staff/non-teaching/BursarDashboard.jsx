@@ -367,7 +367,7 @@ export default function BursarDashboard() {
                 {submitting ? 'Registering Payment...' : 'Record Payment Receipt 🧾'}
               </button>
             </form>
-          ) : (
+          ) : activeFormTab === 'structure' ? (
             /* CREATE FEE STRUCTURE FORM */
             <form onSubmit={handleFeeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="form-group">

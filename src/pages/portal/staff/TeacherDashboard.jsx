@@ -27,7 +27,6 @@ export default function TeacherDashboard() {
   const [submissions, setSubmissions] = useState([]);
   const [gradingSubmission, setGradingSubmission] = useState(null);
   const [gradeScore, setGradeScore] = useState('');
-  const [gradeScore, setGradeScore] = useState('');
   const [gradeRemarks, setGradeRemarks] = useState('');
 
   // PTM state

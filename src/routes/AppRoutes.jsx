@@ -8,6 +8,8 @@ import AdmissionsPage from '../pages/public/AdmissionsPage';
 import StaffDirectoryPage from '../pages/public/StaffDirectoryPage';
 import NewsEventsPage from '../pages/public/NewsEventsPage';
 import GalleryPage from '../pages/public/GalleryPage';
+import VirtualTour from '../pages/public/VirtualTour';
+import AlumniPortal from '../pages/public/AlumniPortal';
 import ContactPage from '../pages/public/ContactPage';
 
 // Auth pages
@@ -44,6 +46,8 @@ export default function AppRoutes() {
       <Route path="/staff" element={<StaffDirectoryPage />} />
       <Route path="/news" element={<NewsEventsPage />} />
       <Route path="/gallery" element={<GalleryPage />} />
+      <Route path="/tour" element={<VirtualTour />} />
+      <Route path="/alumni" element={<AlumniPortal />} />
       <Route path="/contact" element={<ContactPage />} />
 
       {/* ===== Login Routes ===== */}
