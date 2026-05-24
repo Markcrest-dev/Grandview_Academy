@@ -65,6 +65,7 @@ export default function PortalLayout({ children }) {
           { path: '/portal/admin/transport', label: 'Transport', icon: '🚌' },
           { path: '/portal/admin/hostels', label: 'Hostels', icon: '🏨' },
           { path: '/portal/admin/certificates', label: 'Certificates', icon: '🎓' },
+          { path: '/portal/admin/alumni', label: 'Alumni Network', icon: '🤝' },
         ];
       case 'teaching_staff':
         return [

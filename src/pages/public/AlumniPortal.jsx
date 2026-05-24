@@ -1,104 +1,165 @@
 import React, { useState } from 'react';
 import PageWrapper from '../../components/layout/PageWrapper';
+import './AlumniPortal.css';
 
 export default function AlumniPortal() {
   const [activeTab, setActiveTab] = useState('login');
+  
+  // Registration Form State
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    graduationYear: '',
+    email: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError('');
+    setSubmitSuccess(false);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/alumni/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit application');
+      }
+
+      setSubmitSuccess(true);
+      setFormData({ firstName: '', lastName: '', graduationYear: '', email: '' });
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <PageWrapper
       title="Alumni Portal"
       description="Stay connected with Grandview Academy. Join our alumni network."
     >
-      <section className="section bg-gray-50">
+      <section className="section section--subtle">
         <div className="container">
-          <div className="section-heading text-center mb-12">
+          <div className="section-heading" style={{ textAlign: 'center' }}>
             <span className="section-heading__label">Grandview Network</span>
             <h1 className="section-heading__title">Alumni Portal</h1>
-            <p className="section-heading__description mx-auto max-w-2xl text-gray-600 mt-4">
+            <p className="section-heading__description" style={{ margin: '1rem auto 0', maxWidth: '42rem' }}>
               Welcome back! Reconnect with classmates, access exclusive networking opportunities, 
               and stay updated on the latest developments at your alma mater.
             </p>
           </div>
 
-          <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-            <div className="flex border-b border-gray-200">
+          <div className="alumni-portal-card">
+            <div className="alumni-tabs">
               <button
-                className={`flex-1 py-4 text-center font-medium transition-colors ${
-                  activeTab === 'login' ? 'text-[#1B2A4A] border-b-2 border-[#1B2A4A] bg-gray-50' : 'text-gray-500 hover:text-[#1B2A4A]'
-                }`}
+                className={`alumni-tabs__btn ${activeTab === 'login' ? 'alumni-tabs__btn--active' : ''}`}
                 onClick={() => setActiveTab('login')}
               >
                 Login
               </button>
               <button
-                className={`flex-1 py-4 text-center font-medium transition-colors ${
-                  activeTab === 'register' ? 'text-[#1B2A4A] border-b-2 border-[#1B2A4A] bg-gray-50' : 'text-gray-500 hover:text-[#1B2A4A]'
-                }`}
+                className={`alumni-tabs__btn ${activeTab === 'register' ? 'alumni-tabs__btn--active' : ''}`}
                 onClick={() => setActiveTab('register')}
               >
                 Join Network
               </button>
             </div>
 
-            <div className="p-8">
+            <div className="alumni-form-wrapper">
               {activeTab === 'login' ? (
-                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <form onSubmit={(e) => e.preventDefault()}>
+                  <div className="form-group">
+                    <label className="form-label">Email Address</label>
                     <input 
                       type="email" 
-                      className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#1B2A4A] focus:border-[#1B2A4A] outline-none" 
+                      className="form-input" 
                       placeholder="you@example.com"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                  <div className="form-group">
+                    <label className="form-label">Password</label>
                     <input 
                       type="password" 
-                      className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#1B2A4A] focus:border-[#1B2A4A] outline-none" 
+                      className="form-input" 
                       placeholder="••••••••"
                     />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <input id="remember" type="checkbox" className="h-4 w-4 text-[#1B2A4A] border-gray-300 rounded" />
-                      <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">Remember me</label>
+                  <div className="alumni-form-options">
+                    <div className="alumni-checkbox-group">
+                      <input id="remember" type="checkbox" className="alumni-checkbox" />
+                      <label htmlFor="remember" className="alumni-checkbox-label">Remember me</label>
                     </div>
-                    <a href="#" className="text-sm font-medium text-[#C9A84C] hover:text-[#b0933b]">Forgot password?</a>
+                    <a href="#" className="alumni-forgot-link">Forgot password?</a>
                   </div>
-                  <button type="submit" className="w-full btn btn--primary mt-4">
+                  <button type="submit" className="btn btn--primary alumni-btn">
                     Sign In
                   </button>
                 </form>
+              ) : submitSuccess ? (
+                <div className="alumni-success-message" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 1rem' }}>
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <h3 style={{ marginBottom: '0.5rem' }}>Application Received</h3>
+                  <p style={{ color: 'var(--color-subtle)' }}>Your request to join the alumni network has been submitted and is pending verification. You will receive an email once approved.</p>
+                  <button 
+                    onClick={() => setSubmitSuccess(false)}
+                    className="btn btn--outline"
+                    style={{ marginTop: '1.5rem' }}
+                  >
+                    Submit Another
+                  </button>
+                </div>
               ) : (
-                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                      <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded outline-none focus:border-[#1B2A4A]" />
+                <form onSubmit={handleRegister}>
+                  {submitError && (
+                    <div className="form-error" style={{ color: 'var(--color-danger)', marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px' }}>
+                      {submitError}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                      <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded outline-none focus:border-[#1B2A4A]" />
+                  )}
+                  <div className="form-row-2">
+                    <div className="form-group">
+                      <label className="form-label">First Name</label>
+                      <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required className="form-input" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Last Name</label>
+                      <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required className="form-input" />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Graduation Year</label>
-                    <select className="w-full px-4 py-2 border border-gray-300 rounded outline-none focus:border-[#1B2A4A] bg-white">
+                  <div className="form-group">
+                    <label className="form-label">Graduation Year</label>
+                    <select name="graduationYear" value={formData.graduationYear} onChange={handleChange} required className="form-input">
                       <option value="">Select Year</option>
                       {[...Array(30)].map((_, i) => (
-                        <option key={i} value={2025 - i}>{2025 - i}</option>
+                        <option key={i} value={2026 - i}>{2026 - i}</option>
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input type="email" className="w-full px-4 py-2 border border-gray-300 rounded outline-none focus:border-[#1B2A4A]" />
+                  <div className="form-group">
+                    <label className="form-label">Email Address</label>
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className="form-input" />
                   </div>
-                  <button type="submit" className="w-full btn btn--primary mt-4">
-                    Submit Application
+                  <button type="submit" disabled={isSubmitting} className="btn btn--primary alumni-btn">
+                    {isSubmitting ? 'Submitting...' : 'Submit Application'}
                   </button>
-                  <p className="text-xs text-gray-500 text-center mt-4">
+                  <p className="alumni-form-note">
                     All applications are verified by the school administration before access is granted.
                   </p>
                 </form>

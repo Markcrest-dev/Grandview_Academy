@@ -25,6 +25,7 @@ import VisitorLog from '../pages/portal/admin/VisitorLog';
 import TransportManager from '../pages/portal/admin/TransportManager';
 import HostelManager from '../pages/portal/admin/HostelManager';
 import CertificateGenerator from '../pages/portal/admin/CertificateGenerator';
+import AlumniManagement from '../pages/portal/admin/AlumniManagement';
 import TeacherDashboard from '../pages/portal/staff/TeacherDashboard';
 import CourseManager from '../pages/portal/staff/CourseManager';
 import StudentPortalDashboard from '../pages/portal/student/StudentPortalDashboard';
@@ -72,6 +73,7 @@ export default function AppRoutes() {
             <Route path="/transport" element={<TransportManager />} />
             <Route path="/hostels" element={<HostelManager />} />
             <Route path="/certificates" element={<CertificateGenerator />} />
+            <Route path="/alumni" element={<AlumniManagement />} />
             <Route path="/transcript/:studentId" element={<TranscriptView />} />
             <Route path="/messages" element={<MessagingPage />} />
           </Routes>

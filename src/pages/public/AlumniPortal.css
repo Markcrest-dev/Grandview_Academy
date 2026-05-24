@@ -1,0 +1,102 @@
+.alumni-portal-card {
+  max-width: 28rem; /* max-w-md */
+  margin: 0 auto;
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-border);
+}
+
+.alumni-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.alumni-tabs__btn {
+  flex: 1;
+  padding: 1rem 0;
+  text-align: center;
+  font-weight: 500;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  color: #666;
+  border-bottom: 2px solid transparent;
+  background-color: transparent;
+}
+
+.alumni-tabs__btn:hover {
+  color: var(--color-navy);
+}
+
+.alumni-tabs__btn--active {
+  color: var(--color-navy);
+  border-bottom-color: var(--color-navy);
+  background-color: var(--color-subtle);
+}
+
+.alumni-form-wrapper {
+  padding: 2rem;
+}
+
+.alumni-form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+.alumni-checkbox-group {
+  display: flex;
+  align-items: center;
+}
+
+.alumni-checkbox {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  accent-color: var(--color-navy);
+}
+
+.alumni-checkbox-label {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  color: #555;
+  cursor: pointer;
+}
+
+.alumni-forgot-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-gold);
+  transition: color 0.2s ease;
+}
+
+.alumni-forgot-link:hover {
+  color: var(--color-gold-dark);
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .form-row-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.alumni-form-note {
+  font-size: 0.75rem;
+  color: #777;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.alumni-btn {
+  width: 100%;
+  margin-top: 1rem;
+}
