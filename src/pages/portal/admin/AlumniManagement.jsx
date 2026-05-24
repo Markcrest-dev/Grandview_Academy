@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import PageHeader from '../../../components/portal/PageHeader';
+import PortalLayout from '../../../components/layout/PortalLayout';
 
 export default function AlumniManagement() {
   const [applications, setApplications] = useState([]);
@@ -65,13 +65,16 @@ export default function AlumniManagement() {
   };
 
   return (
-    <div className="portal-page">
-      <PageHeader 
-        title="Alumni Management" 
-        subtitle="Review and approve alumni network applications." 
-      />
+    <PortalLayout>
+      <div className="directory-page">
+        <section className="directory-header">
+          <div>
+            <h1 className="directory-title">Alumni Management</h1>
+            <p className="directory-subtitle">Review and approve alumni network applications.</p>
+          </div>
+        </section>
 
-      {error && (
+        {error && (
         <div className="alert alert--danger" style={{ marginBottom: '1.5rem' }}>
           {error}
         </div>
@@ -164,6 +167,6 @@ export default function AlumniManagement() {
           </div>
         )}
       </div>
-    </div>
+    </PortalLayout>
   );
 }
