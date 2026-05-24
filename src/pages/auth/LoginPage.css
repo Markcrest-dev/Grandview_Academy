@@ -46,22 +46,13 @@
 .login-brand__crest {
   width: 38px;
   height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-navy);
-  color: var(--color-gold);
-  font-family: var(--font-heading);
-  font-size: 0.875rem;
-  font-weight: 700;
+  object-fit: contain;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(27, 42, 74, 0.15);
   transition: all 0.3s ease;
 }
 
 .login-card--glass .login-brand__crest {
-  background-color: var(--color-gold);
-  color: var(--color-navy-dark);
   box-shadow: 0 0 12px rgba(201, 168, 76, 0.4);
 }
 

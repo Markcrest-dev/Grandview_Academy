@@ -138,7 +138,7 @@ export default function LoginPage() {
         
         {/* Branding */}
         <Link to="/" className="login-brand">
-          <div className="login-brand__crest">GA</div>
+          <img src="/logo.png" alt="Grandview Academy Logo" className="login-brand__crest" />
           <span className="login-brand__name">Grandview Academy</span>
         </Link>
 

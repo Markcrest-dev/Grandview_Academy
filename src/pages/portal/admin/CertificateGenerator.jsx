@@ -115,7 +115,7 @@ export default function CertificateGenerator() {
                   <div className="cert-border-outer">
                     <div className="cert-border-inner">
                       <div className="cert-header">
-                        <img src="/logo.svg" alt="Grandview Logo" className="cert-logo" onError={(e) => e.target.style.display='none'} />
+                        <img src="/logo.png" alt="Grandview Logo" className="cert-logo" onError={(e) => e.target.style.display='none'} />
                         <h1 className="cert-school-name">Grandview Academy</h1>
                         <p className="cert-motto">Excellence Rooted in Tradition</p>
                       </div>

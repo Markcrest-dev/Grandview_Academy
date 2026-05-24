@@ -31,16 +31,7 @@
 .navbar__crest {
   width: 42px;
   height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-navy);
-  color: var(--color-gold);
-  font-family: var(--font-heading);
-  font-size: 1rem;
-  font-weight: 700;
-  border-radius: 4px;
-  letter-spacing: 0.05em;
+  object-fit: contain;
   flex-shrink: 0;
 }
 

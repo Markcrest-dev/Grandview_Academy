@@ -49,7 +49,7 @@ export default function Navbar() {
     <header className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
       <div className="navbar__inner container">
         <Link to="/" className="navbar__brand">
-          <div className="navbar__crest">GA</div>
+          <img src="/logo.png" alt="Grandview Academy Logo" className="navbar__crest" />
           <div className="navbar__brand-text">
             <span className="navbar__name">Grandview Academy</span>
             <span className="navbar__tagline">Excellence Rooted in Tradition</span>

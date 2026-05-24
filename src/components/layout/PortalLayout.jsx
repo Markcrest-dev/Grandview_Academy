@@ -120,7 +120,7 @@ export default function PortalLayout({ children }) {
       <aside className={`portal-sidebar ${mobileOpen ? 'portal-sidebar--open' : ''}`}>
         <div className="portal-sidebar__header">
           <Link to="/" className="portal-sidebar__logo">
-            <span className="logo-icon">🏰</span>
+            <img src="/logo.png" alt="Grandview Logo" className="logo-icon" />
             <div className="logo-text">
               <span className="logo-main">Grandview</span>
               <span className="logo-sub">Academy SMS</span>
