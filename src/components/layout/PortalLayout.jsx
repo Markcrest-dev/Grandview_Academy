@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import NotificationPanel, { NotificationBell } from '../ui/NotificationPanel';
 import './PortalLayout.css';
 
 export default function PortalLayout({ children }) {
@@ -8,6 +9,7 @@ export default function PortalLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   if (!user) return null;
 
@@ -86,6 +88,18 @@ export default function PortalLayout({ children }) {
       }
       default:
         return [];
+    }
+  };
+
+  // Resolve messages path for the current role
+  const getMessagesPath = () => {
+    switch (role) {
+      case 'admin': return '/portal/admin/messages';
+      case 'teaching_staff': return '/portal/staff/teaching/messages';
+      case 'non_teaching_staff': return '/portal/staff/non-teaching/messages';
+      case 'parent': return '/portal/parent/messages';
+      case 'student': return '/portal/student/messages';
+      default: return '#';
     }
   };
 
@@ -169,6 +183,17 @@ export default function PortalLayout({ children }) {
           </div>
           
           <div className="portal-header__right">
+            <div className="header-icons" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '1rem' }}>
+              <Link
+                to={getMessagesPath()}
+                className="notif-bell"
+                aria-label="Messages"
+                style={{ textDecoration: 'none', fontSize: '1.25rem', color: '#475569' }}
+              >
+                ✉️
+              </Link>
+              <NotificationBell onClick={() => setNotifOpen(true)} />
+            </div>
             <div className="header-info">
               <span className="header-email">{userEmail}</span>
             </div>
@@ -190,6 +215,9 @@ export default function PortalLayout({ children }) {
           onClick={() => setMobileOpen(false)}
         ></div>
       )}
+
+      {/* Notification Slide-Out Panel */}
+      <NotificationPanel isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
     </div>
   );
 }

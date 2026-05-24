@@ -254,4 +254,249 @@ router.post('/payments', requireAuth, requireRoles('admin', 'non_teaching_staff'
   }
 });
 
+// ============================================================
+// PAYSTACK PAYMENT INTEGRATION
+// ============================================================
+
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || '';
+const PAYSTACK_CALLBACK = process.env.PAYSTACK_CALLBACK_URL || '';
+
+/**
+ * POST /api/fees/pay/initialize
+ * Initialize a Paystack transaction. Returns an authorization URL.
+ * Body: { student_id, fee_structure_id, amount, email }
+ */
+router.post('/pay/initialize', requireAuth, requireRoles('parent', 'admin', 'non_teaching_staff'), async (req, res, next) => {
+  try {
+    const errs = validateRequired(req.body, ['student_id', 'fee_structure_id', 'amount', 'email']);
+    if (errs) return sendError(res, { message: 'Validation failed', errors: errs, statusCode: 400 });
+
+    const { student_id, fee_structure_id, amount, email } = req.body;
+    const amountKobo = Math.round(parseFloat(amount) * 100); // Paystack uses kobo (smallest unit)
+
+    if (amountKobo <= 0) return sendError(res, { message: 'Amount must be greater than 0.', statusCode: 400 });
+
+    if (!PAYSTACK_SECRET) {
+      return sendError(res, { message: 'Payment gateway not configured. Contact administration.', statusCode: 503 });
+    }
+
+    const reference = `GA-PAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const response = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: amountKobo,
+        reference,
+        callback_url: PAYSTACK_CALLBACK || undefined,
+        metadata: {
+          student_id,
+          fee_structure_id,
+          user_id: req.user.id,
+        },
+      }),
+    });
+
+    const result = await response.json();
+    if (!result.status) {
+      return sendError(res, { message: result.message || 'Failed to initialize payment.', statusCode: 502 });
+    }
+
+    sendSuccess(res, {
+      data: {
+        authorization_url: result.data.authorization_url,
+        access_code: result.data.access_code,
+        reference: result.data.reference,
+      },
+      message: 'Payment initialized. Redirect user to authorization_url.',
+    });
+  } catch (err) { next(err); }
+});
+
+/**
+ * GET /api/fees/pay/verify
+ * Verify a Paystack payment after redirect.
+ * Query: ?reference=xxx
+ */
+router.get('/pay/verify', requireAuth, async (req, res, next) => {
+  try {
+    const { reference } = req.query;
+    if (!reference) return sendError(res, { message: 'Payment reference required.', statusCode: 400 });
+
+    if (!PAYSTACK_SECRET) {
+      return sendError(res, { message: 'Payment gateway not configured.', statusCode: 503 });
+    }
+
+    const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
+    });
+
+    const result = await response.json();
+    if (!result.status || result.data.status !== 'success') {
+      return sendError(res, { message: 'Payment verification failed or not yet completed.', statusCode: 400 });
+    }
+
+    const { metadata, amount: amountKobo } = result.data;
+    const amountNaira = amountKobo / 100;
+
+    // Check if this reference was already recorded
+    const { data: existingPayment } = await supabaseAdmin
+      .from('fee_payments')
+      .select('id')
+      .eq('receipt_number', reference)
+      .maybeSingle();
+
+    if (existingPayment) {
+      return sendSuccess(res, { data: existingPayment, message: 'Payment already recorded.' });
+    }
+
+    // Record the payment
+    const { data: payment, error } = await supabaseAdmin
+      .from('fee_payments')
+      .insert({
+        student_id: metadata.student_id,
+        fee_structure_id: metadata.fee_structure_id,
+        amount_paid: amountNaira,
+        payment_method: 'paystack',
+        payment_date: new Date().toISOString().split('T')[0],
+        receipt_number: reference,
+        recorded_by: null,
+        remarks: `Online payment via Paystack. Ref: ${reference}`,
+      })
+      .select('*, students(*), fee_structures(*)')
+      .single();
+
+    if (error) return sendError(res, { message: error.message, statusCode: 500 });
+
+    // Audit log
+    await supabaseAdmin.from('audit_logs').insert({
+      user_id: metadata.user_id || req.user.id,
+      action: 'ONLINE_FEE_PAYMENT',
+      entity_type: 'fee_payment',
+      entity_id: payment.id,
+      details: { amount: amountNaira, reference, method: 'paystack' },
+      ip_address: req.ip,
+    });
+
+    // Notify the parent
+    try {
+      await supabaseAdmin.from('notifications').insert({
+        user_id: req.user.id,
+        title: '✅ Payment Confirmed',
+        body: `Your payment of ₦${amountNaira.toLocaleString()} has been confirmed. Receipt: ${reference}`,
+        type: 'fee',
+        reference_id: payment.id,
+      });
+    } catch (e) {}
+
+    sendSuccess(res, { data: payment, message: `Payment verified and recorded. Receipt: ${reference}` });
+  } catch (err) { next(err); }
+});
+
+/**
+ * POST /api/fees/pay/webhook
+ * Paystack webhook handler for server-to-server payment confirmation.
+ */
+router.post('/pay/webhook', async (req, res, next) => {
+  try {
+    // Paystack sends a hash in the x-paystack-signature header
+    const crypto = await import('crypto');
+    const hash = crypto.createHmac('sha512', PAYSTACK_SECRET)
+      .update(JSON.stringify(req.body))
+      .digest('hex');
+
+    if (hash !== req.headers['x-paystack-signature']) {
+      return res.status(400).send('Invalid signature');
+    }
+
+    const { event, data } = req.body;
+
+    if (event === 'charge.success') {
+      const { reference, metadata, amount: amountKobo } = data;
+      const amountNaira = amountKobo / 100;
+
+      // Check if already recorded
+      const { data: existing } = await supabaseAdmin
+        .from('fee_payments')
+        .select('id')
+        .eq('receipt_number', reference)
+        .maybeSingle();
+
+      if (!existing && metadata?.student_id && metadata?.fee_structure_id) {
+        await supabaseAdmin.from('fee_payments').insert({
+          student_id: metadata.student_id,
+          fee_structure_id: metadata.fee_structure_id,
+          amount_paid: amountNaira,
+          payment_method: 'paystack',
+          payment_date: new Date().toISOString().split('T')[0],
+          receipt_number: reference,
+          remarks: `Webhook confirmed. Ref: ${reference}`,
+        });
+      }
+    }
+
+    res.status(200).send('OK');
+  } catch (err) { next(err); }
+});
+
+// ============================================================
+// PAYMENT RECEIPT GENERATOR
+// ============================================================
+
+/**
+ * GET /api/fees/receipts/:payment_id
+ * Returns structured receipt data for a specific payment.
+ */
+router.get('/receipts/:payment_id', requireAuth, async (req, res, next) => {
+  try {
+    const { payment_id } = req.params;
+
+    const { data: payment, error } = await supabaseAdmin
+      .from('fee_payments')
+      .select('*, students(id, first_name, last_name, admission_number, classes(name, level)), fee_structures(*, terms(name), academic_years(name))')
+      .eq('id', payment_id)
+      .maybeSingle();
+
+    if (error || !payment) {
+      return sendError(res, { message: 'Payment record not found.', statusCode: 404 });
+    }
+
+    const receipt = {
+      school: {
+        name: 'Grandview Academy',
+        tagline: 'Excellence Rooted in Tradition',
+        address: 'Grandview Academy, Lagos, Nigeria',
+        email: 'registrar@grandview.edu.ng',
+      },
+      student: {
+        name: `${payment.students?.first_name || ''} ${payment.students?.last_name || ''}`,
+        admissionNumber: payment.students?.admission_number || '',
+        class: payment.students?.classes?.name || '',
+        level: payment.students?.classes?.level || '',
+      },
+      payment: {
+        id: payment.id,
+        receiptNumber: payment.receipt_number,
+        amount: payment.amount_paid,
+        method: payment.payment_method,
+        date: payment.payment_date,
+        remarks: payment.remarks,
+      },
+      fee: {
+        type: payment.fee_structures?.fee_type || '',
+        description: payment.fee_structures?.description || '',
+        term: payment.fee_structures?.terms?.name || '',
+        academicYear: payment.fee_structures?.academic_years?.name || '',
+      },
+      generatedAt: new Date().toISOString(),
+    };
+
+    sendSuccess(res, { data: receipt, message: 'Receipt generated successfully.' });
+  } catch (err) { next(err); }
+});
+
 export default router;

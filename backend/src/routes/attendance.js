@@ -187,5 +187,129 @@ router.post('/', requireAuth, async (req, res, next) => {
   }
 });
 
+/**
+ * GET /api/attendance/report/student/:id
+ * Attendance summary for one student: total days, present, absent, percentage.
+ */
+router.get('/report/student/:id', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { term_id } = req.query;
+
+    let query = supabaseAdmin
+      .from('attendance')
+      .select('status')
+      .eq('student_id', id);
+
+    if (term_id) query = query.eq('term_id', term_id);
+
+    const { data: records, error } = await query;
+    if (error) return sendError(res, { message: error.message, statusCode: 500 });
+
+    const total = records.length;
+    const present = records.filter(r => r.status === 'present').length;
+    const late = records.filter(r => r.status === 'late').length;
+    const absent = records.filter(r => r.status === 'absent').length;
+    const excused = records.filter(r => r.status === 'excused').length;
+    const percentage = total > 0 ? Math.round(((present + late + excused) / total) * 100) : 100;
+
+    sendSuccess(res, {
+      data: { student_id: id, total, present, late, absent, excused, percentage },
+      message: 'Student attendance report generated.',
+    });
+  } catch (err) { next(err); }
+});
+
+/**
+ * GET /api/attendance/report/class/:id
+ * Class-wide attendance summary for a term.
+ */
+router.get('/report/class/:id', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { term_id } = req.query;
+
+    // Get students in the class
+    const { data: students } = await supabaseAdmin
+      .from('students')
+      .select('id, first_name, last_name, admission_number')
+      .eq('class_id', id);
+
+    if (!students || students.length === 0) {
+      return sendSuccess(res, { data: [], message: 'No students in this class.' });
+    }
+
+    const studentIds = students.map(s => s.id);
+    let query = supabaseAdmin
+      .from('attendance')
+      .select('student_id, status')
+      .eq('class_id', id);
+    if (term_id) query = query.eq('term_id', term_id);
+    const { data: records, error } = await query;
+    if (error) return sendError(res, { message: error.message, statusCode: 500 });
+
+    const report = students.map(s => {
+      const stuRecords = records.filter(r => r.student_id === s.id);
+      const total = stuRecords.length;
+      const present = stuRecords.filter(r => r.status === 'present').length;
+      const late = stuRecords.filter(r => r.status === 'late').length;
+      const absent = stuRecords.filter(r => r.status === 'absent').length;
+      const excused = stuRecords.filter(r => r.status === 'excused').length;
+      const percentage = total > 0 ? Math.round(((present + late + excused) / total) * 100) : 100;
+      return { ...s, total, present, late, absent, excused, percentage };
+    });
+
+    sendSuccess(res, { data: report, message: 'Class attendance report generated.' });
+  } catch (err) { next(err); }
+});
+
+/**
+ * GET /api/attendance/flagged
+ * List students whose attendance % falls below a threshold.
+ * Query params: threshold (default 75), term_id
+ */
+router.get('/flagged', requireAuth, async (req, res, next) => {
+  try {
+    const threshold = parseInt(req.query.threshold, 10) || 75;
+    const { term_id } = req.query;
+
+    // Get all students
+    const { data: students } = await supabaseAdmin
+      .from('students')
+      .select('id, first_name, last_name, admission_number, class_id, classes(name, level)');
+
+    if (!students || students.length === 0) {
+      return sendSuccess(res, { data: [], message: 'No students found.' });
+    }
+
+    // Get all attendance records
+    let query = supabaseAdmin.from('attendance').select('student_id, status');
+    if (term_id) query = query.eq('term_id', term_id);
+    const { data: records, error } = await query;
+    if (error) return sendError(res, { message: error.message, statusCode: 500 });
+
+    const flagged = [];
+    for (const s of students) {
+      const stuRecords = records.filter(r => r.student_id === s.id);
+      const total = stuRecords.length;
+      if (total === 0) continue; // Skip students with no attendance records
+      const present = stuRecords.filter(r => r.status === 'present').length;
+      const late = stuRecords.filter(r => r.status === 'late').length;
+      const excused = stuRecords.filter(r => r.status === 'excused').length;
+      const percentage = Math.round(((present + late + excused) / total) * 100);
+      if (percentage < threshold) {
+        flagged.push({ ...s, total, percentage });
+      }
+    }
+
+    flagged.sort((a, b) => a.percentage - b.percentage);
+
+    sendSuccess(res, {
+      data: flagged,
+      message: `Found ${flagged.length} student(s) below ${threshold}% attendance.`,
+    });
+  } catch (err) { next(err); }
+});
+
 export default router;
 

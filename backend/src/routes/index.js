@@ -17,6 +17,9 @@ import libraryRouter from './library.js';
 import medicalRouter from './medical.js';
 import documentsRouter from './documents.js';
 import parentsRouter from './parents.js';
+import notificationsRouter from './notifications.js';
+import assignmentsRouter from './assignments.js';
+import messagingRouter from './messaging.js';
 
 const router = Router();
 
@@ -39,6 +42,9 @@ router.use('/library', libraryRouter);
 router.use('/medical', medicalRouter);
 router.use('/documents', documentsRouter);
 router.use('/parents', parentsRouter);
+router.use('/notifications', notificationsRouter);
+router.use('/assignments', assignmentsRouter);
+router.use('/messages', messagingRouter);
 
 export default router;
 

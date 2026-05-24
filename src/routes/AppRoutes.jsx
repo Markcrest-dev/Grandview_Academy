@@ -23,6 +23,10 @@ import StudentPortalDashboard from '../pages/portal/student/StudentPortalDashboa
 import ParentPortalDashboard from '../pages/portal/parent/ParentPortalDashboard';
 import NonTeachingRouter from '../pages/portal/staff/non-teaching/NonTeachingRouter';
 
+// Shared portal pages
+import MessagingPage from '../pages/portal/shared/MessagingPage';
+import ReceiptPage from '../pages/portal/shared/ReceiptPage';
+
 // Utility pages
 import NotFoundPage from '../pages/NotFoundPage';
 import PortalPlaceholder from '../pages/PortalPlaceholder';
@@ -52,6 +56,7 @@ export default function AppRoutes() {
             <Route path="/admissions" element={<AdmissionsPipeline />} />
             <Route path="/students" element={<StudentDirectory />} />
             <Route path="/manage" element={<RelationshipManager />} />
+            <Route path="/messages" element={<MessagingPage />} />
           </Routes>
         </ProtectedRoute>
       } />
@@ -60,13 +65,17 @@ export default function AppRoutes() {
         <ProtectedRoute allowedRoles={['teaching_staff']}>
           <Routes>
             <Route path="/" element={<TeacherDashboard />} />
+            <Route path="/messages" element={<MessagingPage />} />
           </Routes>
         </ProtectedRoute>
       } />
       
       <Route path="/portal/staff/non-teaching/*" element={
         <ProtectedRoute allowedRoles={['non_teaching_staff']}>
-          <NonTeachingRouter />
+          <Routes>
+            <Route path="/" element={<NonTeachingRouter />} />
+            <Route path="/messages" element={<MessagingPage />} />
+          </Routes>
         </ProtectedRoute>
       } />
       
@@ -74,6 +83,7 @@ export default function AppRoutes() {
         <ProtectedRoute allowedRoles={['parent']}>
           <Routes>
             <Route path="/" element={<ParentPortalDashboard />} />
+            <Route path="/messages" element={<MessagingPage />} />
           </Routes>
         </ProtectedRoute>
       } />
@@ -82,7 +92,15 @@ export default function AppRoutes() {
         <ProtectedRoute allowedRoles={['student']}>
           <Routes>
             <Route path="/" element={<StudentPortalDashboard />} />
+            <Route path="/messages" element={<MessagingPage />} />
           </Routes>
+        </ProtectedRoute>
+      } />
+
+      {/* ===== Shared Portal Routes ===== */}
+      <Route path="/portal/receipt/:paymentId" element={
+        <ProtectedRoute allowedRoles={['admin', 'parent', 'non_teaching_staff']}>
+          <ReceiptPage />
         </ProtectedRoute>
       } />
 

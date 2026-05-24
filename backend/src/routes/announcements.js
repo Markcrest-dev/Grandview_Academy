@@ -117,7 +117,45 @@ router.post('/', requireAuth, requireRoles('admin', 'teaching_staff', 'non_teach
       return sendError(res, { message: `Failed to publish announcement: ${error.message}`, statusCode: 500 });
     }
 
+    // Fan out notifications to users matching the target audience
+    try {
+      const audienceRoleMap = {
+        all: null, // all users
+        staff: ['teaching_staff', 'non_teaching_staff'],
+        students: ['student'],
+        parents: ['parent'],
+      };
+
+      let userQuery = supabaseAdmin.from('users').select('id').eq('is_active', true);
+      const roles = audienceRoleMap[target_audience];
+      if (roles) {
+        userQuery = userQuery.in('role', roles);
+      }
+      // For level-specific audiences (primary, secondary, university) we notify all
+      const { data: targetUsers } = await userQuery;
+
+      if (targetUsers && targetUsers.length > 0) {
+        const notifRows = targetUsers
+          .filter(u => u.id !== req.user.id) // Don't notify the author
+          .map(u => ({
+            user_id: u.id,
+            title: `📢 ${title}`,
+            body: content.substring(0, 150),
+            type: 'announcement',
+            reference_id: newAnnouncement.id,
+          }));
+
+        if (notifRows.length > 0) {
+          await supabaseAdmin.from('notifications').insert(notifRows);
+        }
+      }
+    } catch (notifErr) {
+      console.error('Announcement notification fan-out error:', notifErr);
+      // Don't fail the announcement creation if notifications fail
+    }
+
     sendSuccess(res, {
+
       data: newAnnouncement,
       message: 'Announcement published successfully.',
       statusCode: 201
