@@ -186,14 +186,14 @@ Update this table as features are built and deployed.
 | Internal Messaging | Communication | 🔴 High | ✅ Built |
 | Timetable Generator | Academic | 🟡 Medium | ✅ Built |
 | Admin Analytics Dashboard | Reporting | 🟡 Medium | ✅ Built |
-| Bulk SMS / Email | Communication | 🟡 Medium | ⬜ Not Started |
+| Bulk SMS / Email | Communication | 🟡 Medium | ✅ Built |
 | Student Performance Reports | Reporting | 🟡 Medium | ✅ Built |
 | Fee Defaulter List | Finance | 🟡 Medium | ✅ Built |
 | Export to Excel / PDF | Reporting | 🟡 Medium | ✅ Built |
-| Library Management | Operations | 🟡 Medium | ⬜ Not Started |
-| Health Records System | Operations | 🟡 Medium | ⬜ Not Started |
-| GPA / Grade Calculator | Academic | 🟡 Medium | ⬜ Not Started |
-| Academic Transcript Generator | Academic | 🟡 Medium | ⬜ Not Started |
+| Library Management | Operations | 🟡 Medium | ✅ Built |
+| Health Records System | Operations | 🟡 Medium | ✅ Built |
+| GPA / Grade Calculator | Academic | 🟡 Medium | ✅ Built |
+| Academic Transcript Generator | Academic | 🟡 Medium | ✅ Built |
 | Course Registration | Academic | 🟡 Medium | ⬜ Not Started |
 | Scholarship Management | Finance | 🟡 Medium | ⬜ Not Started |
 | Parent-Teacher Meeting Scheduler | Communication | 🟡 Medium | ⬜ Not Started |

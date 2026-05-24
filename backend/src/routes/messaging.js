@@ -270,4 +270,66 @@ router.get('/contacts', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+/**
+ * POST /api/messages/broadcast
+ * Broadcast a message to a specific cohort (mocked email + internal notification).
+ */
+router.post('/broadcast', requireAuth, async (req, res, next) => {
+  try {
+    const errs = validateRequired(req.body, ['subject', 'body', 'target_audience']);
+    if (errs) return sendError(res, { message: 'Missing fields', errors: errs, statusCode: 400 });
+
+    const { subject, body, target_audience } = req.body;
+    const userId = req.user.id;
+    
+    // Determine audience roles based on target_audience string
+    let roles = [];
+    if (target_audience === 'all_parents') roles = ['parent'];
+    else if (target_audience === 'all_students') roles = ['student'];
+    else if (target_audience === 'all_staff') roles = ['teaching_staff', 'non_teaching_staff'];
+    else if (target_audience === 'everyone') roles = ['student', 'parent', 'teaching_staff', 'non_teaching_staff'];
+    else return sendError(res, { message: 'Invalid target_audience', statusCode: 400 });
+
+    // Fetch all users in those roles
+    const { data: users, error } = await supabaseAdmin
+      .from('users')
+      .select('id, email, role')
+      .in('role', roles)
+      .eq('is_active', true);
+
+    if (error) return sendError(res, { message: error.message, statusCode: 500 });
+    
+    // Simulate sending email (Mock)
+    console.log(`[BROADCAST EMAIL MOCK] Sending email to ${users.length} users in roles: ${roles.join(',')}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body: ${body.substring(0, 50)}...`);
+
+    // Insert internal notifications in bulk
+    if (users && users.length > 0) {
+      const notifications = users.map(u => ({
+        user_id: u.id,
+        title: subject,
+        body: body,
+        type: 'system',
+        reference_id: null
+      }));
+      await supabaseAdmin.from('notifications').insert(notifications);
+    }
+
+    // Log the broadcast in the announcements table as well for visibility
+    await supabaseAdmin.from('announcements').insert({
+      title: subject,
+      content: body,
+      author_id: userId,
+      type: 'general',
+      target_audience: 'all' // Generalize for dashboard viewing
+    });
+
+    sendSuccess(res, { 
+      data: { recipients_count: users ? users.length : 0 }, 
+      message: 'Broadcast dispatched successfully.' 
+    });
+  } catch (err) { next(err); }
+});
+
 export default router;

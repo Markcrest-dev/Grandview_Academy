@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { apiUrl } from '../../../utils/api';
+import { useNavigate } from 'react-router-dom';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import './StudentDirectory.css';
 
 export default function StudentDirectory() {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -318,12 +320,20 @@ export default function StudentDirectory() {
               </div>
 
               {/* Actions Footer */}
-              <div className="details-panel__footer">
+              <div className="details-panel__footer" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <button
                   className="panel-btn panel-btn--gold"
+                  style={{ flex: 1 }}
                   onClick={() => handleEditClick(selectedStudent)}
                 >
-                  Edit Profile folder ✏️
+                  Edit Profile ✏️
+                </button>
+                <button
+                  className="panel-btn"
+                  style={{ flex: 1, backgroundColor: 'var(--color-navy, #1b2a4a)', color: 'white', border: 'none' }}
+                  onClick={() => navigate(`/portal/admin/transcript/${selectedStudent.id}`)}
+                >
+                  Generate Transcript 📄
                 </button>
               </div>
             </aside>

@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { exportToCSV } from '../../../utils/exportUtils';
+import BroadcastPanel from '../../../components/ui/BroadcastPanel';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
@@ -311,6 +312,8 @@ export default function AdminDashboard() {
             )}
           </div>
 
+          <BroadcastPanel />
+          
           {/* Institutional Quick links & Information panel */}
           <div className="dash-side-column">
             <div className="dash-pane">
