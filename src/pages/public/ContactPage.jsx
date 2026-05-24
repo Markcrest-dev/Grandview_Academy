@@ -119,8 +119,8 @@ export default function ContactPage() {
       </section>
 
       {/* Map */}
-      <section className="map-section">
-        <img src="/images/school_map.png" alt="Map — 12 Academy Drive, Victoria Island, Lagos" style={{ width: '100%', height: '400px', objectFit: 'cover', display: 'block' }} />
+      <section className="map-section" style={{ backgroundColor: '#f9fafb', padding: '2rem 0' }}>
+        <img src="/images/school_map.png" alt="Map — 12 Academy Drive, Victoria Island, Lagos" style={{ width: '100%', height: 'auto', maxHeight: '600px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
       </section>
     </PageWrapper>
   );
