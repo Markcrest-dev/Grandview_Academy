@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiUrl } from '../../../utils/api';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import { useAuth } from '../../../context/AuthContext';
+import MessagingInterface from '../../../components/ui/MessagingInterface';
 
 export default function StudentPortalDashboard() {
   const { user } = useAuth();
@@ -20,6 +21,14 @@ export default function StudentPortalDashboard() {
   const [searchMaterials, setSearchMaterials] = useState('');
   const [payments, setPayments] = useState([]);
   const [feeStructures, setFeeStructures] = useState([]);
+
+  // Assignments State
+  const [assignments, setAssignments] = useState([]);
+  const [submittingId, setSubmittingId] = useState(null);
+  const [submitText, setSubmitText] = useState('');
+
+  // Announcements State
+  const [announcements, setAnnouncements] = useState([]);
 
   const token = localStorage.getItem('token');
   const authHeaders = {
@@ -82,6 +91,12 @@ export default function StudentPortalDashboard() {
           if (resData.success) {
             setMaterials(resData.data);
           }
+        } else if (activeTab === 'assignments') {
+          const res = await fetch(apiUrl(`/api/assignments/student/my-assignments`), { headers: authHeaders });
+          const resData = await res.json();
+          if (resData.success) {
+            setAssignments(resData.data);
+          }
         } else if (activeTab === 'fees') {
           // Fetch fee payments history registered on their profile
           const payRes = await fetch(apiUrl(`/api/fees/payments/student/${profileData.id}`), { headers: authHeaders });
@@ -95,6 +110,12 @@ export default function StudentPortalDashboard() {
           const structData = await structRes.json();
           if (structData.success) {
             setFeeStructures(structData.data);
+          }
+        } else if (activeTab === 'alerts') {
+          const res = await fetch(apiUrl('/api/announcements'), { headers: authHeaders });
+          const resData = await res.json();
+          if (resData.success) {
+            setAnnouncements(resData.data);
           }
         }
       } catch (err) {
@@ -148,6 +169,32 @@ export default function StudentPortalDashboard() {
   const filteredMaterials = materials.filter(m =>
     m.title.toLowerCase().includes(searchMaterials.toLowerCase())
   );
+
+  const handleAssignmentSubmit = async (assignmentId) => {
+    if (!submitText.trim()) return alert('Please enter your submission text or link.');
+    try {
+      const res = await fetch(apiUrl(`/api/assignments/${assignmentId}/submit`), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ text_content: submitText })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Assignment submitted successfully!');
+        setSubmittingId(null);
+        setSubmitText('');
+        // Refresh assignments
+        const refreshRes = await fetch(apiUrl(`/api/assignments/student/my-assignments`), { headers: authHeaders });
+        const refreshData = await refreshRes.json();
+        if (refreshData.success) setAssignments(refreshData.data);
+      } else {
+        alert(data.message || 'Failed to submit assignment.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An error occurred submitting the assignment.');
+    }
+  };
 
   const triggerPrint = () => {
     window.print();
@@ -259,7 +306,10 @@ export default function StudentPortalDashboard() {
                 { id: 'attendance', label: 'Attendance History', icon: '📅' },
                 { id: 'report', label: 'Academic Report Card', icon: '📝' },
                 { id: 'materials', label: 'Learning Materials 📚', icon: '' },
-                { id: 'fees', label: 'Fees & Invoices ₦', icon: '' }
+                { id: 'assignments', label: 'Assignments & Tasks ✍️', icon: '' },
+                { id: 'fees', label: 'Fees & Invoices ₦', icon: '' },
+                { id: 'alerts', label: 'Announcements 📢', icon: '' },
+                { id: 'messages', label: 'Messages 💬', icon: '' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -615,6 +665,127 @@ export default function StudentPortalDashboard() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* TAB: ASSIGNMENTS & TASKS */}
+            {!loadingData && activeTab === 'assignments' && (
+              <div className="dash-pane">
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h3 className="dash-pane__title" style={{ margin: 0 }}>Class Assignments & Tasks</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Submit your homework and track your graded scores.</p>
+                </div>
+
+                {assignments.length === 0 ? (
+                  <div className="pane-empty" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+                    <span className="empty-icon">✍️</span>
+                    <h4 className="empty-title">No Assignments</h4>
+                    <p className="empty-desc">You do not have any active or past assignments for your current class.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {assignments.map(assignment => (
+                      <div key={assignment.id} style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                              <h4 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>{assignment.title}</h4>
+                              <span className={`status-badge status-badge--${assignment.status}`} style={{ fontSize: '0.625rem', padding: '2px 8px' }}>
+                                {assignment.status.toUpperCase()}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '0.8125rem', color: '#475569', margin: '0 0 0.5rem' }}>{assignment.description || 'No description provided.'}</p>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                              <span><strong>Subject:</strong> {assignment.subjects?.name || 'General'}</span>
+                              <span><strong>Teacher:</strong> {assignment.staff?.first_name} {assignment.staff?.last_name}</span>
+                              <span style={{ color: new Date(assignment.due_date) < new Date() && assignment.status === 'pending' ? '#dc2626' : 'inherit' }}>
+                                <strong>Due:</strong> {new Date(assignment.due_date).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Grade Display */}
+                          {assignment.status === 'graded' && assignment.submission && (
+                            <div style={{ background: '#ffffff', padding: '0.75rem 1.25rem', borderRadius: '4px', border: '1px solid #cbd5e1', textAlign: 'center', minWidth: '100px' }}>
+                              <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>Score</span>
+                              <strong style={{ fontSize: '1.25rem', color: '#16a34a', display: 'block' }}>{assignment.submission.score} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>/ {assignment.max_score}</span></strong>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Area */}
+                        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                          {assignment.status === 'pending' || assignment.status === 'overdue' ? (
+                            submittingId === assignment.id ? (
+                              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+                                <textarea
+                                  placeholder="Enter your submission text, answers, or a link to your work here..."
+                                  value={submitText}
+                                  onChange={(e) => setSubmitText(e.target.value)}
+                                  style={{ width: '100%', minHeight: '80px', padding: '0.75rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.8125rem', resize: 'vertical', marginBottom: '0.75rem', fontFamily: 'inherit' }}
+                                />
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  <button onClick={() => handleAssignmentSubmit(assignment.id)} className="btn btn--navy" style={{ padding: '0.4rem 1rem', fontSize: '0.75rem' }}>Submit Work</button>
+                                  <button onClick={() => { setSubmittingId(null); setSubmitText(''); }} className="btn btn--danger" style={{ padding: '0.4rem 1rem', fontSize: '0.75rem' }}>Cancel</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button onClick={() => setSubmittingId(assignment.id)} className="btn btn--navy" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem' }}>
+                                Submit Assignment
+                              </button>
+                            )
+                          ) : (
+                            <div style={{ fontSize: '0.8125rem', color: '#475569' }}>
+                              <p style={{ margin: '0 0 0.5rem' }}><strong>Your Submission:</strong> {assignment.submission?.text_content || 'File uploaded'}</p>
+                              {assignment.submission?.remarks && (
+                                <p style={{ margin: 0, padding: '0.75rem', background: '#fef3c7', borderLeft: '3px solid #d97706', borderRadius: '0 4px 4px 0' }}>
+                                  <strong>Teacher Remarks:</strong> {assignment.submission.remarks}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: ALERTS / ANNOUNCEMENTS */}
+            {!loadingData && activeTab === 'alerts' && (
+              <div className="dash-pane">
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h3 className="dash-pane__title" style={{ margin: 0 }}>School Announcements & Alerts</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Stay updated with the latest news from the administration.</p>
+                </div>
+
+                {announcements.length === 0 ? (
+                  <div className="pane-empty" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+                    <span className="empty-icon">📢</span>
+                    <h4 className="empty-title">No Announcements</h4>
+                    <p className="empty-desc">There are currently no active announcements from the school administration.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {announcements.map(ann => (
+                      <div key={ann.id} style={{ padding: '1.25rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', borderLeft: '4px solid #C9A84C' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1b2a4a', margin: 0 }}>{ann.title}</h4>
+                          <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>{new Date(ann.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p style={{ fontSize: '0.8125rem', color: '#475569', margin: 0, lineHeight: '1.5' }}>{ann.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: MESSAGES */}
+            {!loadingData && activeTab === 'messages' && (
+              <div className="dash-pane" style={{ padding: '0', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+                <MessagingInterface />
               </div>
             )}
 

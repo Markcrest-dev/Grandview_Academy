@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiUrl } from '../../../utils/api';
 import { useNavigate, Link } from 'react-router-dom';
 import PortalLayout from '../../../components/layout/PortalLayout';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
@@ -14,7 +15,25 @@ export default function AdminDashboard() {
   });
 
   const [recentApplications, setRecentApplications] = useState([]);
+  const [flaggedStudents, setFlaggedStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Mock Data for KPI Charts
+  const enrollmentData = [
+    { name: 'Jan', students: 120 },
+    { name: 'Feb', students: 150 },
+    { name: 'Mar', students: 180 },
+    { name: 'Apr', students: 220 },
+    { name: 'May', students: 270 },
+    { name: 'Jun', students: 310 },
+  ];
+
+  const attendanceTrends = [
+    { name: 'Wk 1', rate: 98 },
+    { name: 'Wk 2', rate: 95 },
+    { name: 'Wk 3', rate: 92 },
+    { name: 'Wk 4', rate: 96 },
+  ];
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -40,6 +59,13 @@ export default function AdminDashboard() {
         const classResponse = await fetch(apiUrl('/api/classes?limit=1'));
         const classData = await classResponse.json();
         const classesCount = classData.success && classData.pagination ? classData.pagination.total : 1;
+
+        // Fetch flagged attendance students
+        const flaggedRes = await fetch(apiUrl('/api/attendance/flagged?threshold=75'));
+        const flaggedData = await flaggedRes.json();
+        if (flaggedData.success) {
+          setFlaggedStudents(flaggedData.data);
+        }
 
         setMetrics({
           activeStudents: activeStudentsCount,
@@ -118,6 +144,38 @@ export default function AdminDashboard() {
           </div>
         </section>
 
+        {/* KPI Charts Section */}
+        <section className="dash-main-grid" style={{ marginBottom: '1.5rem', gridTemplateColumns: '1fr 1fr' }}>
+          <div className="dash-pane">
+            <h3 className="dash-pane__title">Enrollment Growth</h3>
+            <div style={{ height: '300px', width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={enrollmentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                  <Bar dataKey="students" fill="#1b2a4a" radius={[4, 4, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="dash-pane">
+            <h3 className="dash-pane__title">Average Attendance Rate (%)</h3>
+            <div style={{ height: '300px', width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={attendanceTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                  <YAxis domain={[80, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                  <Line type="monotone" dataKey="rate" stroke="#C9A84C" strokeWidth={3} dot={{ r: 4, fill: '#1b2a4a', strokeWidth: 2, stroke: '#ffffff' }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
         {/* Main Grid: Pipeline Log & Action Center */}
         <div className="dash-main-grid">
           {/* Recent Applications Pane */}
@@ -152,6 +210,42 @@ export default function AdminDashboard() {
                     <div className="app-status">
                       <span className="badge badge--pending">Pending</span>
                       <span className="app-time">{new Date(app.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Attendance Alert Pane */}
+          <div className="dash-pane">
+            <div className="dash-pane__header">
+              <h3 className="dash-pane__title" style={{ color: '#dc2626' }}>🚨 Attendance Alerts</h3>
+              <span className="badge badge--pending">{flaggedStudents.length} Flagged</span>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1rem' }}>Students below 75% attendance threshold.</p>
+            
+            {loading ? (
+              <div className="pane-loading">
+                <div className="pane-spinner"></div>
+              </div>
+            ) : flaggedStudents.length === 0 ? (
+              <div className="pane-empty">
+                <span className="empty-icon" style={{ backgroundColor: '#f0fdf4', color: '#15803d' }}>✓</span>
+                <h4 className="empty-title">All Good</h4>
+                <p className="empty-desc">No students are currently below the attendance warning threshold.</p>
+              </div>
+            ) : (
+              <div className="recent-apps-list">
+                {flaggedStudents.slice(0, 5).map((student) => (
+                  <div key={student.id} className="recent-app-item" style={{ borderLeft: '3px solid #ef4444' }}>
+                    <div className="app-info" style={{ marginLeft: '0.5rem' }}>
+                      <h4 className="app-name">{student.first_name} {student.last_name}</h4>
+                      <span className="app-meta">Class: <strong>{student.classes?.name || 'Unassigned'}</strong></span>
+                    </div>
+                    <div className="app-status">
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#dc2626' }}>{student.attendance_rate}%</span>
+                      <span className="app-time">Rate</span>
                     </div>
                   </div>
                 ))}

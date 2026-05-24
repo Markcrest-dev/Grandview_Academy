@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiUrl } from '../../../utils/api';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import { useAuth } from '../../../context/AuthContext';
+import MessagingInterface from '../../../components/ui/MessagingInterface';
 
 export default function ParentPortalDashboard() {
   const { user } = useAuth();
@@ -24,6 +25,7 @@ export default function ParentPortalDashboard() {
   const [feeStructures, setFeeStructures] = useState([]);
   const [payments, setPayments] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   
   // Payment Form States
   const [selectedFeeStructureId, setSelectedFeeStructureId] = useState('');
@@ -124,6 +126,12 @@ export default function ParentPortalDashboard() {
           }
         } else if (subTab === 'fees') {
           await refreshFeesData();
+        } else if (subTab === 'assignments') {
+          const res = await fetch(apiUrl(`/api/assignments/student/${selectedChildId}/assignments`), { headers: authHeaders });
+          const resData = await res.json();
+          if (resData.success) {
+            setAssignments(resData.data);
+          }
         } else if (subTab === 'alerts') {
           // Fetch announcements
           const res = await fetch(apiUrl('/api/announcements'), { headers: authHeaders });
@@ -212,45 +220,38 @@ export default function ParentPortalDashboard() {
   // Absent days extractor
   const absentDays = attendanceData.records.filter(r => r.status.toLowerCase() === 'absent');
 
-  // Submit Tuition Payment SIMULATION
+  // Submit Tuition Payment via Paystack
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     if (!selectedFeeStructureId || !paymentAmount) return;
 
     setPaymentProcessing(true);
 
-    // Simulate Interswitch / Paystack Gateway handshake delay
-    setTimeout(async () => {
-      try {
-        const res = await fetch(apiUrl('/api/fees/payments'), {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify({
-            student_id: selectedChildId,
-            fee_structure_id: selectedFeeStructureId,
-            amount_paid: parseFloat(paymentAmount),
-            payment_method: 'Card (Online Checkout)',
-            remarks: 'Simulated Online Parent Payment Gateway deposit'
-          })
-        });
+    try {
+      const res = await fetch(apiUrl('/api/fees/pay/initialize'), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          student_id: selectedChildId,
+          fee_structure_id: selectedFeeStructureId,
+          amount: parseFloat(paymentAmount)
+        })
+      });
 
-        const resData = await res.json();
+      const resData = await res.json();
+      
+      if (resData.success && resData.data.authorization_url) {
+        // Redirect to Paystack Checkout page
+        window.location.href = resData.data.authorization_url;
+      } else {
+        alert(resData.message || 'Failed to initialize payment.');
         setPaymentProcessing(false);
-
-        if (resData.success) {
-          setPaymentReceiptNumber(resData.data.receipt_number);
-          setShowPaymentModal(false);
-          setShowSuccessModal(true);
-          await refreshFeesData(); // Reload financial ledger instantly!
-        } else {
-          alert(`Gateway Error: ${resData.message}`);
-        }
-      } catch (err) {
-        setPaymentProcessing(false);
-        console.error('Payment gateway error:', err);
-        alert('Failed to register payment via Gateway.');
       }
-    }, 2500);
+    } catch (err) {
+      setPaymentProcessing(false);
+      console.error('Payment gateway error:', err);
+      alert('Failed to connect to Paystack Gateway.');
+    }
   };
 
   // Submit direct message to Form Teacher
@@ -408,8 +409,10 @@ export default function ParentPortalDashboard() {
                     { id: 'timetable', label: 'School Timetable', icon: '🏫' },
                     { id: 'attendance', label: 'Attendance Stats', icon: '📅' },
                     { id: 'report', label: 'Report Card Transcript', icon: '📝' },
+                    { id: 'assignments', label: 'Assignments Tracker 📚', icon: '' },
                     { id: 'fees', label: 'Fees & Payments 💳', icon: '' },
-                    { id: 'alerts', label: 'Alerts & Messages 🔔', icon: '' }
+                    { id: 'alerts', label: 'Alerts & Announcements 🔔', icon: '' },
+                    { id: 'messages', label: 'Messages 💬', icon: '' }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -689,6 +692,70 @@ export default function ParentPortalDashboard() {
                   </div>
                 )}
 
+                {/* SUBTAB: ASSIGNMENTS TRACKER */}
+                {!loadingMetrics && subTab === 'assignments' && (
+                  <div className="dash-pane">
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <h3 className="dash-pane__title" style={{ margin: 0 }}>Assignments Tracker</h3>
+                      <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Monitor your child's pending tasks and review graded coursework.</p>
+                    </div>
+
+                    {assignments.length === 0 ? (
+                      <div className="pane-empty" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+                        <span className="empty-icon">📚</span>
+                        <h4 className="empty-title">No Assignments</h4>
+                        <p className="empty-desc">Your child has no active or past assignments for their current class.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {assignments.map(assignment => (
+                          <div key={assignment.id} style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                  <h4 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>{assignment.title}</h4>
+                                  <span className={`status-badge status-badge--${assignment.status}`} style={{ fontSize: '0.625rem', padding: '2px 8px' }}>
+                                    {assignment.status.toUpperCase()}
+                                  </span>
+                                </div>
+                                <p style={{ fontSize: '0.8125rem', color: '#475569', margin: '0 0 0.5rem' }}>{assignment.description || 'No description provided.'}</p>
+                                <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                  <span><strong>Subject:</strong> {assignment.subjects?.name || 'General'}</span>
+                                  <span><strong>Teacher:</strong> {assignment.staff?.first_name} {assignment.staff?.last_name}</span>
+                                  <span style={{ color: new Date(assignment.due_date) < new Date() && assignment.status === 'pending' ? '#dc2626' : 'inherit' }}>
+                                    <strong>Due:</strong> {new Date(assignment.due_date).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {/* Grade Display */}
+                              {assignment.status === 'graded' && assignment.submission && (
+                                <div style={{ background: '#ffffff', padding: '0.75rem 1.25rem', borderRadius: '4px', border: '1px solid #cbd5e1', textAlign: 'center', minWidth: '100px' }}>
+                                  <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>Score</span>
+                                  <strong style={{ fontSize: '1.25rem', color: '#16a34a', display: 'block' }}>{assignment.submission.score} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>/ {assignment.max_score}</span></strong>
+                                </div>
+                              )}
+                            </div>
+
+                            {assignment.submission && (
+                              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                                <div style={{ fontSize: '0.8125rem', color: '#475569' }}>
+                                  <p style={{ margin: '0 0 0.5rem' }}><strong>Submission:</strong> {assignment.submission?.text_content || 'File uploaded'}</p>
+                                  {assignment.submission?.remarks && (
+                                    <p style={{ margin: 0, padding: '0.75rem', background: '#fef3c7', borderLeft: '3px solid #d97706', borderRadius: '0 4px 4px 0' }}>
+                                      <strong>Teacher Remarks:</strong> {assignment.submission.remarks}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* SUBTAB: FEES & PAYMENTS (Phase 8) */}
                 {!loadingMetrics && subTab === 'fees' && (
                   <div className="dash-pane">
@@ -878,6 +945,13 @@ export default function ParentPortalDashboard() {
                   </div>
                 )}
 
+                {/* SUBTAB: MESSAGES */}
+                {!loadingMetrics && subTab === 'messages' && (
+                  <div className="dash-pane" style={{ padding: '0', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+                    <MessagingInterface />
+                  </div>
+                )}
+
               </div>
             ) : null}
           </div>
@@ -929,56 +1003,8 @@ export default function ParentPortalDashboard() {
                 />
               </div>
 
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>DEBIT CARD NUMBER</label>
-                <input
-                  type="text"
-                  placeholder="4000 1234 5678 9010"
-                  maxLength="19"
-                  style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none', letterSpacing: '2px' }}
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>EXPIRY DATE</label>
-                  <input
-                    type="text"
-                    placeholder="MM/YY"
-                    maxLength="5"
-                    style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none', textAlign: 'center' }}
-                    value={cardExpiry}
-                    onChange={(e) => setCardExpiry(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>CVV</label>
-                  <input
-                    type="password"
-                    placeholder="123"
-                    maxLength="3"
-                    style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none', textAlign: 'center' }}
-                    value={cardCvv}
-                    onChange={(e) => setCardCvv(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>CARDHOLDER REGISTERED NAME</label>
-                <input
-                  type="text"
-                  placeholder="Chidi Okafor (Snr)"
-                  style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8125rem', outline: 'none', textTransform: 'uppercase' }}
-                  value={cardHolder}
-                  onChange={(e) => setCardHolder(e.target.value)}
-                  required
-                />
+              <div style={{ padding: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '0.75rem', color: '#64748b', textAlign: 'center' }}>
+                You will be securely redirected to Paystack to complete your payment via Card, Bank Transfer, or USSD.
               </div>
 
               <button

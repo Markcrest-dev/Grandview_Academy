@@ -47,6 +47,29 @@ router.get('/student/my-assignments', requireAuth, requireRoles('student'), asyn
   } catch (err) { next(err); }
 });
 
+router.get('/student/:student_id/assignments', requireAuth, requireRoles('parent', 'admin', 'teaching_staff'), async (req, res, next) => {
+  try {
+    const { student_id } = req.params;
+    const { data: student } = await supabaseAdmin.from('students').select('id,class_id').eq('id', student_id).maybeSingle();
+    if (!student) return sendError(res, { message: 'Student profile not found.', statusCode: 404 });
+    const { data: assignments, error } = await supabaseAdmin.from('assignments')
+      .select('*, subjects(id,name,code), staff:created_by(id,first_name,last_name)')
+      .eq('class_id', student.class_id).eq('is_active', true).order('due_date', { ascending: false });
+    if (error) return sendError(res, { message: error.message, statusCode: 500 });
+    const ids = assignments.map(a => a.id);
+    let subs = [];
+    if (ids.length > 0) {
+      const { data: s } = await supabaseAdmin.from('assignment_submissions').select('*').eq('student_id', student.id).in('assignment_id', ids);
+      subs = s || [];
+    }
+    const merged = assignments.map(a => {
+      const sub = subs.find(s => s.assignment_id === a.id);
+      return { ...a, submission: sub||null, status: sub ? (sub.graded_at ? 'graded' : 'submitted') : (new Date(a.due_date)<new Date() ? 'overdue' : 'pending') };
+    });
+    sendSuccess(res, { data: merged, message: 'Student assignments fetched for parent/admin.' });
+  } catch (err) { next(err); }
+});
+
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin.from('assignments')

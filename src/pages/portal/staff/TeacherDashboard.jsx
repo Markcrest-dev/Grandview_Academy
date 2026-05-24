@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiUrl } from '../../../utils/api';
 import PortalLayout from '../../../components/layout/PortalLayout';
 import { useAuth } from '../../../context/AuthContext';
+import MessagingInterface from '../../../components/ui/MessagingInterface';
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
@@ -13,6 +14,19 @@ export default function TeacherDashboard() {
   
   // Timetable state
   const [timetableSlots, setTimetableSlots] = useState([]);
+
+  // Assignments state
+  const [assignments, setAssignments] = useState([]);
+  const [newAssignment, setNewAssignment] = useState({ title: '', description: '', due_date: '', subject_id: '' });
+  const [assigning, setAssigning] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [submissions, setSubmissions] = useState([]);
+  const [gradingSubmission, setGradingSubmission] = useState(null);
+  const [gradeScore, setGradeScore] = useState('');
+  const [gradeRemarks, setGradeRemarks] = useState('');
+
+  // Announcements state
+  const [announcements, setAnnouncements] = useState([]);
 
   // Attendance state
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
@@ -186,6 +200,46 @@ export default function TeacherDashboard() {
     loadGradesForConfig();
   }, [activeTab, selectedSubjectId, selectedTermId, selectedAssessment, assignedClass]);
 
+  // 5. Pre-fetch assignments
+  useEffect(() => {
+    async function loadAssignments() {
+      if (activeTab !== 'assignments' || !assignedClass || !user?.profile?.id) return;
+      setLoadingData(true);
+      try {
+        const res = await fetch(apiUrl(`/api/assignments?class_id=${assignedClass.id}&teacher_id=${user.profile.id}`), { headers: authHeaders });
+        const resData = await res.json();
+        if (resData.success) {
+          setAssignments(resData.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+    loadAssignments();
+  }, [activeTab, assignedClass]);
+
+  // 6. Pre-fetch announcements
+  useEffect(() => {
+    async function loadAnnouncements() {
+      if (activeTab !== 'alerts') return;
+      setLoadingData(true);
+      try {
+        const res = await fetch(apiUrl('/api/announcements'), { headers: authHeaders });
+        const resData = await res.json();
+        if (resData.success) {
+          setAnnouncements(resData.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+    loadAnnouncements();
+  }, [activeTab]);
+
   // Save attendance
   const handleSaveAttendance = async () => {
     setAttendanceSaving(true);
@@ -265,6 +319,86 @@ export default function TeacherDashboard() {
     }
   };
 
+  // Create Assignment
+  const handleCreateAssignment = async (e) => {
+    e.preventDefault();
+    if (!newAssignment.title || !newAssignment.due_date || !newAssignment.subject_id) return;
+    setAssigning(true);
+    try {
+      const res = await fetch(apiUrl('/api/assignments'), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          title: newAssignment.title,
+          description: newAssignment.description,
+          due_date: newAssignment.due_date,
+          class_id: assignedClass.id,
+          subject_id: newAssignment.subject_id
+        })
+      });
+      const resData = await res.json();
+      if (res.ok && resData.success) {
+        alert('Assignment published successfully!');
+        setAssignments([resData.data, ...assignments]);
+        setNewAssignment({ title: '', description: '', due_date: '', subject_id: '' });
+      } else {
+        alert(resData.message || 'Failed to publish assignment.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Connection error occurred.');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const loadSubmissions = async (assignment) => {
+    if (selectedAssignment?.id === assignment.id) {
+      setSelectedAssignment(null);
+      setSubmissions([]);
+      return;
+    }
+    setSelectedAssignment(assignment);
+    try {
+      const res = await fetch(apiUrl(`/api/assignments/${assignment.id}/submissions`), { headers: authHeaders });
+      const resData = await res.json();
+      if (resData.success) {
+        setSubmissions(resData.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleGradeSubmit = async (studentId) => {
+    if (!gradeScore) return alert('Please enter a score.');
+    try {
+      const res = await fetch(apiUrl(`/api/assignments/${selectedAssignment.id}/grade`), {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          student_id: studentId,
+          score: gradeScore,
+          remarks: gradeRemarks
+        })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        alert('Grade saved!');
+        setGradingSubmission(null);
+        setGradeScore('');
+        setGradeRemarks('');
+        // Reload submissions
+        loadSubmissions(selectedAssignment);
+      } else {
+        alert(resData.message || 'Failed to save grade.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An error occurred while saving the grade.');
+    }
+  };
+
   return (
     <PortalLayout>
       <div className="teacher-dash">
@@ -319,7 +453,10 @@ export default function TeacherDashboard() {
                 { id: 'roster', label: 'My Class Roster', icon: '🎒' },
                 { id: 'attendance', label: 'Daily Attendance', icon: '📅' },
                 { id: 'grades', label: 'Scoring Gradebook', icon: '📝' },
-                { id: 'timetable', label: 'Form Timetable', icon: '🏫' }
+                { id: 'timetable', label: 'Form Timetable', icon: '🏫' },
+                { id: 'assignments', label: 'Assignments', icon: '📚' },
+                { id: 'alerts', label: 'Announcements 📢', icon: '' },
+                { id: 'messages', label: 'Messages 💬', icon: '' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -629,6 +766,194 @@ export default function TeacherDashboard() {
                     })}
                   </div>
                 )}
+              </div>
+            )}
+
+            {!loadingData && activeTab === 'assignments' && (
+              <div className="dash-pane">
+                <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <h3 className="dash-pane__title" style={{ margin: 0 }}>Class Assignments & Coursework</h3>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Publish and manage assignments for your class.</p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', alignItems: 'start' }}>
+                  {/* Create Assignment Form */}
+                  <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1b2a4a', marginBottom: '1rem' }}>Publish New Assignment</h4>
+                    <form onSubmit={handleCreateAssignment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Assignment Title</label>
+                        <input
+                          type="text"
+                          required
+                          value={newAssignment.title}
+                          onChange={(e) => setNewAssignment({ ...newAssignment, title: e.target.value })}
+                          style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8125rem' }}
+                          placeholder="e.g. Chapter 4 Exercises"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Subject</label>
+                        <select
+                          required
+                          value={newAssignment.subject_id}
+                          onChange={(e) => setNewAssignment({ ...newAssignment, subject_id: e.target.value })}
+                          style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8125rem' }}
+                        >
+                          <option value="">-- Select Subject --</option>
+                          {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Due Date</label>
+                        <input
+                          type="datetime-local"
+                          required
+                          value={newAssignment.due_date}
+                          onChange={(e) => setNewAssignment({ ...newAssignment, due_date: e.target.value })}
+                          style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8125rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>Instructions</label>
+                        <textarea
+                          rows="4"
+                          value={newAssignment.description}
+                          onChange={(e) => setNewAssignment({ ...newAssignment, description: e.target.value })}
+                          style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8125rem', resize: 'vertical' }}
+                          placeholder="Provide assignment details..."
+                        ></textarea>
+                      </div>
+                      <button type="submit" disabled={assigning} className="btn btn--gold" style={{ padding: '0.625rem', fontWeight: 'bold' }}>
+                        {assigning ? 'Publishing...' : 'Publish Assignment 📤'}
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Assignments List */}
+                  <div>
+                    <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#1b2a4a', marginBottom: '1rem' }}>Active Assignments</h4>
+                    {assignments.length === 0 ? (
+                      <p style={{ fontSize: '0.8125rem', color: '#64748b' }}>No assignments published yet.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {assignments.map(assign => (
+                          <div key={assign.id} style={{ background: '#ffffff', borderRadius: '4px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                            <div 
+                              style={{ padding: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
+                              onClick={() => loadSubmissions(assign)}
+                            >
+                              <div>
+                                <h5 style={{ margin: '0 0 0.25rem', fontSize: '1rem', color: '#0f172a' }}>{assign.title}</h5>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1b2a4a', background: '#f1f5f9', padding: '0.125rem 0.5rem', borderRadius: '12px' }}>
+                                  {assign.subjects?.name || 'Subject'}
+                                </span>
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block' }}>DUE DATE</span>
+                                <span style={{ fontSize: '0.8125rem', fontWeight: 'bold', color: new Date(assign.due_date) < new Date() ? '#dc2626' : '#16a34a' }}>
+                                  {new Date(assign.due_date).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {selectedAssignment?.id === assign.id && (
+                              <div style={{ padding: '1rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                                <h6 style={{ fontSize: '0.8125rem', fontWeight: 'bold', color: '#1e293b', margin: '0 0 0.75rem' }}>Student Submissions</h6>
+                                {submissions.length === 0 ? (
+                                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>No submissions yet.</p>
+                                ) : (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {submissions.map(sub => (
+                                      <div key={sub.id} style={{ background: '#ffffff', padding: '0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <div>
+                                            <strong style={{ fontSize: '0.8125rem', color: '#0f172a' }}>{sub.students?.first_name} {sub.students?.last_name}</strong>
+                                            <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'block' }}>{sub.students?.admission_number}</span>
+                                          </div>
+                                          <div>
+                                            {sub.score !== null ? (
+                                              <span style={{ fontSize: '0.8125rem', fontWeight: 'bold', color: '#16a34a' }}>Score: {sub.score} / {assign.max_score}</span>
+                                            ) : (
+                                              <button onClick={() => setGradingSubmission(sub.id)} className="btn btn--gold" style={{ padding: '0.25rem 0.75rem', fontSize: '0.6875rem' }}>Grade</button>
+                                            )}
+                                          </div>
+                                        </div>
+                                        
+                                        <div style={{ fontSize: '0.75rem', color: '#475569', background: '#f1f5f9', padding: '0.5rem', borderRadius: '4px' }}>
+                                          <p style={{ margin: '0 0 0.25rem' }}><strong>Submission:</strong> {sub.text_content || 'File attached'}</p>
+                                          <p style={{ margin: 0, fontSize: '0.6875rem', color: '#94a3b8' }}>Submitted: {new Date(sub.submitted_at).toLocaleString()}</p>
+                                        </div>
+
+                                        {gradingSubmission === sub.id && (
+                                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                            <input 
+                                              type="number" 
+                                              placeholder={`Score (Max ${assign.max_score})`}
+                                              value={gradeScore}
+                                              onChange={(e) => setGradeScore(e.target.value)}
+                                              style={{ flex: 1, padding: '0.375rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem' }}
+                                            />
+                                            <input 
+                                              type="text" 
+                                              placeholder="Remarks"
+                                              value={gradeRemarks}
+                                              onChange={(e) => setGradeRemarks(e.target.value)}
+                                              style={{ flex: 2, padding: '0.375rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem' }}
+                                            />
+                                            <button onClick={() => handleGradeSubmit(sub.student_id)} className="btn btn--navy" style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}>Save</button>
+                                            <button onClick={() => setGradingSubmission(null)} className="btn btn--danger" style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}>Cancel</button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!loadingData && activeTab === 'alerts' && (
+              <div className="dash-pane">
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h3 className="dash-pane__title" style={{ margin: 0 }}>School Announcements & Alerts</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.25rem 0 0' }}>Stay updated with the latest news from the administration.</p>
+                </div>
+
+                {announcements.length === 0 ? (
+                  <div className="pane-empty" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+                    <span className="empty-icon">📢</span>
+                    <h4 className="empty-title">No Announcements</h4>
+                    <p className="empty-desc">There are currently no active announcements from the school administration.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {announcements.map(ann => (
+                      <div key={ann.id} style={{ padding: '1.25rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', borderLeft: '4px solid #C9A84C' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1b2a4a', margin: 0 }}>{ann.title}</h4>
+                          <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>{new Date(ann.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p style={{ fontSize: '0.8125rem', color: '#475569', margin: 0, lineHeight: '1.5' }}>{ann.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!loadingData && activeTab === 'messages' && (
+              <div className="dash-pane" style={{ padding: '0', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+                <MessagingInterface />
               </div>
             )}
           </div>

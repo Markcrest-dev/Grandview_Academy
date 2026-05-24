@@ -32,31 +32,49 @@ router.post('/login', async (req, res, next) => {
     let userRecord = null;
     let profileData = null;
 
-    if (role === 'admin') {
-      // Admin authenticates via email directly
+    const isEmail = identifier.includes('@');
+
+    // First, lookup via email if applicable
+    if (isEmail) {
       const { data: user, error } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('email', identifier)
-        .eq('role', 'admin')
         .maybeSingle();
+      
+      if (!error && user) {
+        userRecord = user;
+      }
+    }
 
-      if (error || !user) {
+    if (role === 'admin') {
+      if (!userRecord && !isEmail) {
+        const { data: user, error } = await supabaseAdmin
+          .from('users')
+          .select('*')
+          .eq('email', identifier)
+          .eq('role', 'admin')
+          .maybeSingle();
+        userRecord = !error ? user : null;
+      }
+      if (!userRecord || userRecord.role !== 'admin') {
         return sendError(res, { message: 'Invalid email or password.', statusCode: 401 });
       }
-      userRecord = user;
     } 
     
     else if (role === 'student') {
-      // Find student by admission number
-      const { data: student, error: studentError } = await supabaseAdmin
-        .from('students')
-        .select('*, users(*)')
-        .eq('admission_number', identifier)
-        .maybeSingle();
+      let studentQuery = supabaseAdmin.from('students').select('*, users(*)');
+      
+      if (userRecord) {
+        studentQuery = studentQuery.eq('user_id', userRecord.id);
+      } else {
+        studentQuery = studentQuery.eq('admission_number', identifier);
+      }
+
+      const { data: student, error: studentError } = await studentQuery.maybeSingle();
 
       if (studentError || !student || !student.users) {
-        return sendError(res, { message: 'Invalid Admission Number or password.', statusCode: 401 });
+        return sendError(res, { message: 'Invalid Admission Number, Email or password.', statusCode: 401 });
       }
 
       userRecord = student.users;
@@ -72,15 +90,18 @@ router.post('/login', async (req, res, next) => {
     } 
     
     else if (role === 'staff') {
-      // Find staff by staff ID
-      const { data: staff, error: staffError } = await supabaseAdmin
-        .from('staff')
-        .select('*, users(*)')
-        .eq('staff_id_number', identifier)
-        .maybeSingle();
+      let staffQuery = supabaseAdmin.from('staff').select('*, users(*)');
+      
+      if (userRecord) {
+        staffQuery = staffQuery.eq('user_id', userRecord.id);
+      } else {
+        staffQuery = staffQuery.eq('staff_id_number', identifier);
+      }
+
+      const { data: staff, error: staffError } = await staffQuery.maybeSingle();
 
       if (staffError || !staff || !staff.users) {
-        return sendError(res, { message: 'Invalid Staff ID or password.', statusCode: 401 });
+        return sendError(res, { message: 'Invalid Staff ID, Email or password.', statusCode: 401 });
       }
 
       userRecord = staff.users;
@@ -97,42 +118,51 @@ router.post('/login', async (req, res, next) => {
     } 
     
     else if (role === 'parent') {
-      // Find parent by Parent ID or Child's Admission Number
       let parent = null;
 
-      // 1. Try directly searching by Parent ID Number
-      const { data: directParent, error: directError } = await supabaseAdmin
-        .from('parents')
-        .select('*, users(*)')
-        .eq('parent_id_number', identifier)
-        .maybeSingle();
-
-      if (!directError && directParent) {
-        parent = directParent;
+      if (userRecord) {
+        const { data: directParent, error: directError } = await supabaseAdmin
+          .from('parents')
+          .select('*, users(*)')
+          .eq('user_id', userRecord.id)
+          .maybeSingle();
+          
+        if (!directError && directParent) {
+          parent = directParent;
+        }
       } else {
-        // 2. Try looking up child by Admission Number and loading parent mapping
-        const { data: child, error: childError } = await supabaseAdmin
-          .from('students')
-          .select('id')
-          .eq('admission_number', identifier)
+        // 1. Try directly searching by Parent ID Number
+        const { data: directParent, error: directError } = await supabaseAdmin
+          .from('parents')
+          .select('*, users(*)')
+          .eq('parent_id_number', identifier)
           .maybeSingle();
 
-        if (!childError && child) {
-          // Join through parent_student
-          const { data: mappings, error: mapError } = await supabaseAdmin
-            .from('parent_student')
-            .select('parents(*, users(*))')
-            .eq('student_id', child.id);
+        if (!directError && directParent) {
+          parent = directParent;
+        } else {
+          // 2. Try looking up child by Admission Number and loading parent mapping
+          const { data: child, error: childError } = await supabaseAdmin
+            .from('students')
+            .select('id')
+            .eq('admission_number', identifier)
+            .maybeSingle();
 
-          if (!mapError && mappings && mappings.length > 0) {
-            // Take the first mapped parent for simplicity
-            parent = mappings[0].parents;
+          if (!childError && child) {
+            const { data: mappings, error: mapError } = await supabaseAdmin
+              .from('parent_student')
+              .select('parents(*, users(*))')
+              .eq('student_id', child.id);
+
+            if (!mapError && mappings && mappings.length > 0) {
+              parent = mappings[0].parents;
+            }
           }
         }
       }
 
       if (!parent || !parent.users) {
-        return sendError(res, { message: 'Invalid Parent ID / Student Admission Number or password.', statusCode: 401 });
+        return sendError(res, { message: 'Invalid Parent ID, Email, Student Admission Number or password.', statusCode: 401 });
       }
 
       userRecord = parent.users;

@@ -6,20 +6,20 @@ import './LoginPage.css';
 const roleConfig = {
   student: {
     title: 'Student Portal',
-    idLabel: 'Admission Number',
-    idPlaceholder: 'e.g. GA/2024/001',
+    idLabel: 'Admission Number or Email',
+    idPlaceholder: 'e.g. GA/2024/001 or email@...',
     description: 'Access your academic records, timetable, results, and learning materials.',
   },
   parent: {
     title: 'Parent / Guardian Portal',
-    idLabel: 'Parent ID or Child\'s Admission Number',
-    idPlaceholder: 'e.g. GAP/2026/089 or GA/2024/001',
+    idLabel: 'Parent ID, Child\'s Admission No, or Email',
+    idPlaceholder: 'e.g. GAP/2026/089 or email@...',
     description: 'Monitor your child\'s attendance, grades, fee status, and communicate with teachers.',
   },
   staff: {
     title: 'Staff Portal',
-    idLabel: 'Staff ID',
-    idPlaceholder: 'e.g. GAS/2020/045',
+    idLabel: 'Staff ID or Email',
+    idPlaceholder: 'e.g. GAS/2020/045 or email@...',
     description: 'Manage your classes, attendance, grades, and access departmental resources.',
   },
   admin: {
