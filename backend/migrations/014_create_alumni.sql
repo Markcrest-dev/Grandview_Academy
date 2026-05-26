@@ -16,17 +16,19 @@ CREATE TABLE IF NOT EXISTS public.alumni_applications (
 );
 
 -- Indexes for faster lookups in the admin dashboard
-CREATE INDEX idx_alumni_applications_status ON public.alumni_applications(status);
-CREATE INDEX idx_alumni_applications_email ON public.alumni_applications(email);
-CREATE INDEX idx_alumni_applications_graduation_year ON public.alumni_applications(graduation_year);
+CREATE INDEX IF NOT EXISTS idx_alumni_applications_status ON public.alumni_applications(status);
+CREATE INDEX IF NOT EXISTS idx_alumni_applications_email ON public.alumni_applications(email);
+CREATE INDEX IF NOT EXISTS idx_alumni_applications_graduation_year ON public.alumni_applications(graduation_year);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.alumni_applications ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for public access (submission) and admin access (management)
+DROP POLICY IF EXISTS "Enable public insertions" ON public.alumni_applications;
 CREATE POLICY "Enable public insertions" ON public.alumni_applications
   FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Enable full access for admins" ON public.alumni_applications;
 CREATE POLICY "Enable full access for admins" ON public.alumni_applications
   FOR ALL TO authenticated
   USING (auth.jwt() ->> 'role' = 'admin')
